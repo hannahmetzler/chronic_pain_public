@@ -1,6 +1,7 @@
 # Chronic pain & group psychotherapy
 
 Doctoral thesis by Julia Sonnleitner
+
 Code by Hannah Metzler (metzler@csh.ac.at, www.hannahmetzler.eu)
 
 All R scripts and data are online in a private github repository. If you want to continue analysing these data, I can discuss your project with Julia Sonnleitner, and then possibly give you access to that repository. Please contact me at metzler@csh.ac.at. 
