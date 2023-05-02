@@ -29,14 +29,16 @@ Before running the R scripts, create the following folders in your folder for th
 * scripts
 
 ## Code: 
-* Das Skript "analysis_runner.Rmd" führt durch die Analysen, ruft ein Skript nach dem anderen auf (von 1 bis 7), beschreibt alle Variablen, und erstellt einen PDF oder Word report (wenn es in R verwendet wird (mittels knit button)). 
-* Skript 01 formatiert die Daten (data_pain_t0t2t3.csv) und berechnet Differenzen zwischen Zeitpunkten. Alle folgenden Skripten zu den 3 Zeitpunkten verwenden die formatierten Daten aus Skript 1. 
-* Skript 02 berechnet Descriptive statistics pro Zeitpunkt mit den Daten aus Skript 01
-* Skript 03 erstellt alle figures zu den Daten aus Skript 01
-* Skript 4 analysiert die Daten von T1, der nur bei der Treatment Gruppe erhoben wurde. 
-* Skript 5 analysiert die Daten in beiden Gruppen bei T0, T2, T3. Korrelationen, t-tests, ANOVAs und ihre Voraussetzungen. Datenset aus Skript 01. 
-* Skript 6 macht wilcoxon tests zu den 3 Zeitpunkten, zu ordinalen Variablen, weil bei ihnen keine ANOVA möglich ist.
-* Skript 7 analysiert den ICD 10. Datensets dafür: 
+
+The script "analysis_runner.Rmd" conducts the analyses, calls one script after another (from 1 to 7), describes all variables, and creates a PDF or Word report (if used in R (using the knit button)).
+
+* Script 01 formats the data (data_pain_t0t2t3.csv) and calculates differences between time points. All following scripts for the 3 time points use the formatted data from Script 01.
+* Script 02 calculates descriptive statistics per time point using the data from Script 01.
+* Script 03 creates all figures using the data from Script 01.
+* Script 04 analyzes the data from T1, which was only collected in the treatment group.
+* Script 05 analyzes the data in both groups at T0, T2, T3. Correlations, t-tests, ANOVAs, and their assumptions. Dataset from Script 01.
+* Script 06 performs Wilcoxon tests on the 3 time points for ordinal variables, as ANOVA is not possible for them.
+* Script 07 analyzes the ICD 10. Datasets for this:
   - icd10.csv: detailed diagnosis for each axis
   - icd10_largecategories.csv (patients per intermediate category of disorder)
 * therapy_goals_evaluation.Rmd creates a second report that describes the Therapy goals and evaluation data in the treatment group (dataset: therapy_goals_and_evaluation.csv)
