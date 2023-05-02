@@ -1,0 +1,356 @@
+---
+title: "Therapy goals and evaluation"
+output:
+  pdf_document:
+
+    fig_caption: true
+    df_print: kable
+  word_document: 
+    fig_caption: true
+    df_print: kable
+  number_sections: true
+url_colour: blue
+---
+
+
+<!-- Global settings and Packages-->
+```{r, results='hide', echo = FALSE, message=FALSE}
+# settings to hide code, messages and warnings in PDF output
+knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+knitr::opts_knit$set(root.dir = '/Users/Hannah/Documents/Analyse_Julia_Sonnleitner/pain/' ) #setting all root directories relative to this one
+
+#Packages
+library(RColorBrewer)
+library(dplyr) #for basic data handling
+library(ggplot2) #for figures
+library(scales)
+library(ggpubr)
+library(gridExtra) #for multiple figures
+Sys.setlocale("LC_ALL", 'en_US.UTF-8')
+options(scipen=10)
+```
+
+```{r, prepare data, results=FALSE}
+dge <- read.csv2('../data/therapy_goals_and_evaluation.csv') %>% 
+  mutate(group = factor(group, labels = c("Treatment"))) 
+
+#missing values per question
+apply(apply(dge[,c(3:16, 19:32, 35)], 2, is.na), 2, sum)
+#which subjects
+filter(dge, is.na(knowledge_pain))
+
+d <- dge %>% 
+  filter(!is.na(knowledge_pain))
+
+summary(d)
+```
+
+# Missing values
+
+2 patients have missing values for all questions, these are omitted from all plots. One patient has a missing value for the question on confidence about future progress, this missing value is explicitly shown in the plot for this question. 
+
+```{r, figure settings, results=FALSE}
+# figure settings: ####
+increasing <- brewer.pal(8,"YlGnBu")[c(4:8)]#colours from set YlGnbu = increasing blue tones
+st = 15 # font size title
+sl = 12 #label font size
+
+```
+
+
+# Therapeutic goals: In how far did therapy help to achieve positive changes? 
+
+Patients rated the extent of achieved change as: 
+
+* 5 = strongly improved
+* 4 = clearly improved
+* 3 = partially improved 
+* 2 = improved a bit
+* 1 = did not improve/unchanged
+
+```{r, single goal plots, results=FALSE, warnings=FALSE}
+#function to add all settings to the plot for goal questions
+plotgoal <- function(plot){
+  plot +
+    geom_histogram(stat="count")+
+    scale_y_continuous(breaks=c(0, 2,4,6, 8), name="Count", limits=c(0,9))+
+    scale_x_discrete(breaks = c(1:5, NA), labels = c("no change", "a bit", "partially", "clearly", "strongly", "missing"))+
+    scale_fill_manual(values=increasing, na.value="grey")+
+    theme_bw() +
+    theme(axis.title.x= element_blank(), text=element_text(size=sl),plot.title=element_text(size=sl), 
+          panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          legend.position="none", plot.margin = unit(rep(0.5, 4), "cm"))
+}
+
+plot <- ggplot(d, aes(x=factor(knowledge_pain),fill=factor(knowledge_pain)))+
+  ggtitle("Knowledge about chronic pain")
+p1 <- plotgoal(plot)
+
+plot <- ggplot(d, aes(x=factor(knowledge_med),fill=factor(knowledge_med)))+
+  ggtitle("Knowledge about medicine/therapies")
+p2 <- plotgoal(plot)
+
+
+plot <- ggplot(d, aes(x=factor(muscle_relax),fill=factor(muscle_relax)))+
+  ggtitle("Muscle relaxation")
+p3 <- plotgoal(plot)
+
+plot <- ggplot(d, aes(x=factor(stressors),fill=factor(stressors)))+
+  ggtitle("Recognizing pain triggers/stressors")
+p4 <- plotgoal(plot)
+
+plot <- ggplot(d, aes(x=factor(guide_attention),fill=factor(guide_attention)))+
+  ggtitle("Diverting attention")
+p5 <- plotgoal(plot)
+
+plot <- ggplot(d, aes(x=factor(focus_pleasure),fill=factor(focus_pleasure)))+
+  ggtitle("Focusing on something pleasant")
+p6 <- plotgoal(plot)
+
+plot <- ggplot(d, aes(x=factor(treat_self),fill=factor(treat_self)))+
+  ggtitle("Treat myself with beautiful/new things")
+p7 <- plotgoal(plot)
+
+plot <- ggplot(d, aes(x=factor(stop_negthoughts),fill=factor(stop_negthoughts)))+
+  ggtitle("Stop negative/promote positive thoughts")
+p8 <- plotgoal(plot)
+
+plot <- ggplot(d, aes(x=factor(wellbeing),fill=factor(wellbeing)))+
+  ggtitle("Promoting my subjective wellbeing")
+p9 <- plotgoal(plot)
+
+plot <- ggplot(d, aes(x=factor(conflicts),fill=factor(conflicts)))+
+  ggtitle("Coping with problems or conflicts")
+p10 <- plotgoal(plot)
+
+plot <- ggplot(d, aes(x=factor(reduce_pain_intensity),fill=factor(reduce_pain_intensity)))+
+  ggtitle("Reducing pain intensity")
+p11 <- plotgoal(plot)
+
+plot <- ggplot(d, aes(x=factor(reduce_pain_duration),fill=factor(reduce_pain_duration)))+
+  ggtitle("Reducing pain duration")
+p12 <- plotgoal(plot)
+
+plot <- ggplot(d, aes(x=factor(pain_control),fill=factor(pain_control)))+
+  ggtitle("Controlling the pain/other complaints")
+p13 <- plotgoal(plot)
+
+plot <- ggplot(d, aes(x=factor(lq),fill=factor(lq)))+
+  ggtitle("Improving life quality")
+p14 <- plotgoal(plot)
+
+plot <- ggplot(d, aes(x=factor(other),fill=factor(other)))+
+  ggtitle("Other areas of change")
+p15 <- plotgoal(plot)
+```
+
+\newpage
+
+```{r,  goal figures 1, fig.width=7, fig.height = 9}
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol=2)
+```
+
+\newpage
+
+```{r,  goal figures 2, fig.width=7, fig.height = 9, cache = FALSE}
+grid.arrange(p7, p8, p9, p10, p11, p12, ncol=2)
+
+```
+
+\newpage
+
+```{r, goal figures 3,  fig.width=7, fig.height = 6}
+
+grid.arrange(p13, p14, p15, ncol=2)
+
+```
+
+3 patients described other areas of change in words: 
+
+* Wissen dass man nicht alleine ist
+* Dass Andere noch groessere Probleme haben  
+* Viel aktiver   
+
+\newpage 
+
+## Therapy goals: Medians for each item
+
+```{r, goals median figures}
+d_median = d %>% 
+  select(-c(other, subid)) %>% #exclude text entry variables, and subids
+  select_if(is.integer) %>% # exclude factors
+  summarize_all(median, na.rm = TRUE) %>% 
+  gather(key='item', value='median') %>% 
+  mutate(variable=c(rep('goals', 14), rep('evaluation', 15)),
+         item_text=c("Knowledge about chronic pain", "Knowledge about medicine/therapies",
+                     "Muscle relaxation", "Recognizing pain triggers/stressors", "Diverting attention",
+                     "Focusing on something pleasant","Treat myself with beautiful/new things",
+                     "Stop negative/promote positive thoughts", "Promoting my subjective wellbeing", 
+                     "Coping with problems or conflicts", "Reducing pain intensity", "Reducing pain duration", 
+                     "Controlling the pain/other complaints", "Improving life quality",
+                     "I had positive expectations about GT.", "I could talk openly in the group.",
+                     "I participated actively.", "The behavior of group leader was\nhelpful.",
+                     "Sessions were well planned and\nstructured.", "The group leader was understanding.",
+                     "After this GT, I am confident that\nI will make further progress.",
+                     "The GT increased trust in myself.", "The GT was too much for me.",
+                     "GT did not help for my problems.","I found the GT helpful.",
+                     "I felt well in the group.",  "Other group members disturbed me.",
+                     "Single therapy sessions would\nhave helped more.", "In total, I am satisfied with the GT."),
+         median = factor(median, ordered=TRUE))
+
+#plot
+pgoalsmedian =ggplot(filter(d_median, variable=='goals'), aes(x=item_text, y=median, width=0.6, fill=variable))+
+  geom_bar(stat="identity")+coord_flip()+
+  scale_y_discrete(breaks = c(1:5), labels = c("no change", "a bit", "partially", "clearly", "strongly"), drop=FALSE)+
+  scale_fill_manual(values=c(increasing[3]))+
+  theme_bw() +
+  theme(axis.title= element_blank(), text=element_text(size=sl),plot.title=element_text(size=sl), 
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position="none", plot.margin = unit(rep(0.5, 4), "cm"))+
+  ggtitle('Therapy goals (Median)')
+pdf('../figures/therapy_goals_median.pdf'); pgoalsmedian; dev.off()
+```
+
+
+# Evaluation of group therapy
+
+Patients rated in how far they agreed to each statement. GT is the group therapy. 
+
+```{r, single evaluation plots, results=FALSE, warnings=FALSE}
+#function to add all settings to the plot for goal questions
+ploteval <- function(plot){
+  plot +
+    geom_histogram(stat="count")+
+    scale_y_continuous(breaks=c(2, 4,6,8,10, 12), limits=c(0,12), name="Count")+
+    scale_x_discrete(breaks = c(1:5, NA), labels = c("not\naccurate", "not very\naccurate", "partially\naccurate", "pretty\naccurate", "totally\naccurate", "missing"))+
+    scale_fill_manual(values=increasing, na.value="grey")+
+    theme_bw() +
+    theme(axis.title.x= element_blank(), text=element_text(size=sl),plot.title=element_text(size=sl), 
+          panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          legend.position="none", plot.margin = unit(rep(0.5, 4), "cm"))
+}
+
+
+plot <- ggplot(d, aes(x=factor(had_positive_expectations),fill=factor(had_positive_expectations)))+
+  ggtitle("I had positive expectations about GT.")
+p1 <- ploteval(plot)
+
+plot <- ggplot(d, aes(x=factor(could_talk_openly),fill=factor(could_talk_openly)))+
+  ggtitle("I could talk openly in the group.")
+p2 <- ploteval(plot)
+
+plot <- ggplot(d, aes(x=factor(I_participated_actively),fill=factor(I_participated_actively)))+
+  ggtitle("I participated actively.")
+p3 <- ploteval(plot)
+
+plot <- ggplot(d, aes(x=factor(group_leader_helpful),fill=factor(group_leader_helpful)))+
+  ggtitle("The behavior of group leader was\nhelpful.")
+p4 <- ploteval(plot)
+
+plot <- ggplot(d, aes(x=factor(session_structure_planning_good),fill=factor(session_structure_planning_good)))+
+  ggtitle("Sessions were well planned and\nstructured.")
+p5 <- ploteval(plot)
+
+plot <- ggplot(d, aes(x=factor(leader_was_understanding),fill=factor(leader_was_understanding)))+
+  ggtitle("The group leader was understanding.")
+p6 <- ploteval(plot)
+
+plot <- ggplot(d, aes(x=factor(confident_future_progress),fill=factor(confident_future_progress)))+
+  ggtitle("After this GT, I am confident that\nI will make further progress.")
+p7 <- ploteval(plot)+
+  theme(axis.title.x= element_blank(), text=element_text(size=10),plot.title=element_text(size=sl), 
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position="none", plot.margin = unit(rep(0.5, 4), "cm"))
+
+plot <- ggplot(d, aes(x=factor(increase_trust),fill=factor(increase_trust)))+
+  ggtitle("The GT increased trust in myself.")
+p8 <- ploteval(plot)
+
+plot <- ggplot(d, aes(x=factor(therapy_toomuch),fill=factor(therapy_toomuch)))+
+  ggtitle("The GT was too much for me.")
+p9 <- ploteval(plot)
+
+plot <- ggplot(d, aes(x=factor(therapy_nohelp),fill=factor(therapy_nohelp)))+
+  ggtitle("GT did not help for my problems.")
+p10 <- ploteval(plot)
+
+plot <- ggplot(d, aes(x=factor(therapy_helpful),fill=factor(therapy_helpful)))+
+  ggtitle("I found the GT helpful.")
+p11 <- ploteval(plot)
+
+plot <- ggplot(d, aes(x=factor(felt_well_in_group),fill=factor(felt_well_in_group)))+
+  ggtitle("I felt well in the group.")
+p12 <- ploteval(plot)
+
+plot <- ggplot(d, aes(x=factor(others_disturbed_me),fill=factor(others_disturbed_me)))+
+  ggtitle("Other group members disturbed me.")
+p13 <- ploteval(plot)
+
+plot <- ggplot(d, aes(x=factor(prefer_therapy_alone),fill=factor(prefer_therapy_alone)))+
+  ggtitle("Single therapy sessions would\nhave helped more.")
+p14 <- ploteval(plot)
+
+p15 <- ggplot(d, aes(x=(total),fill=factor(total)))+
+  ggtitle("In total, I am satisfied with the GT.")+
+  geom_histogram(stat="count")+
+  scale_y_continuous(breaks=c(2,4,6,8,10,12), limits=c(0,12), name="Count")+
+  scale_x_continuous(breaks = c(0:10), limits=c(0,10.5), labels = c("not at\nall", "1", "2", "3", "4", "5", "6", "7", "8", "9", "totally"))+
+  scale_fill_manual(values=increasing, na.value="grey")+
+  theme_bw() +
+  theme(axis.title.x= element_blank(), text=element_text(size=sl),plot.title=element_text(size=sl), 
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position="none", plot.margin = unit(rep(0.5, 4), "cm"))
+```
+
+
+Patients evaluated the group therapy (GT) on the following scale: 
+
+* 5 = totally accurate
+* 4 = pretty accurate
+* 3 = partially accurate
+* 2 = not very accurate
+* 1 = not accurate
+
+\newpage
+
+```{r,  evaluation figures 1, fig.width=7, fig.height = 9}
+grid.arrange(p1, p2, p3, p6, p4, p5, ncol=2)
+```
+
+\newpage
+
+```{r,  evaluation figures 2, fig.width=7, fig.height = 9, cache = FALSE}
+grid.arrange(p8, p9, p10, p11, p12, p13, ncol=2)
+```
+
+\newpage
+
+```{r, evaluation figures 3,  fig.width=7, fig.height = 3}
+grid.arrange(p7, p14,  ncol=2)
+```
+
+--
+
+```{r, total evaluation score, fig.width=4.5, fig.height = 3}
+p15
+```
+
+## Therapy evaluation: Median for each item
+
+```{r}
+#plot
+pevalmedian =ggplot(filter(d_median, variable=='evaluation' & item!="total"), aes(x=item_text, y=median, width=0.6, fill=variable))+
+  geom_bar(stat="identity")+coord_flip()+
+    scale_y_discrete(breaks=c(1:5), drop=FALSE, 
+                      labels = c("not\naccurate", "not very\naccurate", "partially\naccurate", "pretty\naccurate", "totally\naccurate"), name="Count")+
+    # scale_x_discrete(breaks = c(1:5, NA), labels = c("not\naccurate", "not very\naccurate", "partially\naccurate", "pretty\naccurate", "totally\naccurate", "missing"))+
+  #scale_y_discrete(breaks = c(1:5), labels = c("no change", "a bit", "partially", "clearly", "strongly"), drop=FALSE)+
+  scale_fill_manual(values=c(increasing[3]))+
+  theme_bw() +
+  theme(axis.title= element_blank(), text=element_text(size=sl),plot.title=element_text(size=sl), 
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position="none", plot.margin = unit(rep(0.5, 4), "cm"))+
+  ggtitle('Therapy evaluation (Median)')
+pdf('../figures/therapy_evaluation_median.pdf'); pevalmedian; dev.off()
+```
+

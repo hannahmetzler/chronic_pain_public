@@ -1,0 +1,1634 @@
+---
+title: "Analysis Chronic Pain Study - Julia Sonnleitner"
+date: August 17, 2019
+output:
+  word_document: 
+    toc: true
+    toc_depth: 2
+    fig_caption: true
+    df_print: kable
+  pdf_document:
+    toc: true
+    toc_depth: 2
+    fig_caption: true
+    df_print: kable
+  number_sections: true
+url_colour: blue
+---
+
+
+<!-- Global settings and Packages-->
+```{r, results='hide', echo = FALSE, message=FALSE}
+# settings to hide code, messages and warnings in PDF output
+knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+#knitr::opts_knit$set(root.dir = '/Users/Hannah/Documents/Analyse_Julia_Sonnleitner/pain/scripts' ) #setting all root directories relative to this one
+Sys.setlocale("LC_ALL", 'en_US.UTF-8')
+
+#when working inside R (not printing to PDF)
+#setwd('/scripts')
+
+#Packages
+library(RColorBrewer)
+library(dplyr) #for basic data handling
+library(ggplot2) #for figures
+library(apa) #for writing results of tests into text format (apa Style)
+library(ez) #for ANOVAS
+library(car) #for LeveneTest
+library(psych)
+```
+
+\newpage
+
+# Abbreviations
+
+* Control Group = CG
+* Treatment Group = TG
+* Life Quality = LQ
+* NA in figures: Not Available (Missing values)
+
+# Type of Analysis
+
+* **PP**: Per protocol (keep only complete cases).
+Tells us which treatment effect would occur under optimal conditions.
+* **LOCF**: Intention to treat: last observation carried forward.
+Missing observations of the following questionnaires were replaced with last available value:
+  - Life quality
+  - CPSQ
+  - Visual Analogue Scale Intensity
+  - Soms number and intensity
+  - HADS anxiety and depression
+  - WI Hypochondria
+  - MPSS
+* **AV**: All values: Keep all existing values per time point
+
+For a good introduction about these different methods, see [https://www.clinfo.eu/itt-vs-pp/]
+
+The chosen type of analysis (PP, LOCF, AV) for all analysis below is:
+```{r, echo=TRUE}
+analysis = "LOCF"
+```
+
+<!-- Run the data preparation, descriptives and figures script with the chosen type of missing cases exclusion or replacement: -->
+
+```{r, results = "hide"}
+source("./01_prepare_data.R")
+source("./02_descriptives.R")
+source("./06_wilcox_tests.R")
+source("07icd10.R")
+# 
+# #run figure script:
+# #source("scripts/03_figures.R")
+# #if script was already run, load saved figures instead:
+load("../figures/pain_plots.RData")
+```
+
+\newpage
+
+<!-- # Farbenauswahl für Graphiken: -->
+
+<!-- Ich hab alle Farben aus dieser Palette gewählt (weil kein Rot vorkommt, sind sie auch für Farbenblinde zu unterscheiden). Alle Plots mit mehreren Kategorien (z.B. Sozio-ökonomische Variablen) sind mit diesen 6 Farben, mit den hinteren angefangen, gemacht: Nr. 2, 3, 4, 6, 7 & 9. Die Farben für die VG und KG sind 4 und 9, weil der Kontrast klar ist. Um den Anstieg der Chronifizirungsstadien beim MPSS bzw. Beeinträchtigungsgrade beim CPSQ zu veranschaulichen, verwende ich 4 bis 8 als ansteigende Farbtöne. -->
+
+```{r, fig.height=2, fig.width=4}
+#display.brewer.all(select = c("YlGnBu"))
+```
+
+<!-- Du kannst auch gerne eine andere Palette aus allen folgenden auswählen, sag mir einfach welche, und welche 6 Farben du daraus gerne hättest: -->
+
+<!-- ```{r, fig.height=8} -->
+<!-- display.brewer.all() -->
+<!-- ``` -->
+
+\newpage
+
+# Which variables were assessed at which time point?
+
+All variables were assessed at T0.
+
+## Only at T0
+
+* Age
+* Gender
+* Education
+* Marital status
+* Income (before taxes)
+* Debt
+* Pain in family member
+* Pain duration in years
+* Subjective control of pain
+* Sick leave
+* Planning to retire
+* Expectation about medical & psychological therapy (only treatment group provided psychological therapy expectations)
+- but a similar question was asked at T3 for evaluation of therapy success
+
+## Assessed each time: T0 T2 and T3
+
+* Date
+* Life quality (4 subscales)
+* CPSQ
+* VAS pain intensity
+* Anxiety
+* Depression
+* Hypochondria
+* SOMS
+
+## T0 and T2
+
+* Psychotherapy motivation
+
+## T0 and T3
+
+* Occupation
+* Subjective control of pain
+* Specialist visits
+* Lost days (AU Tage)
+* MPSS
+* Evaluation of success of therapy in total across both groups (similar to question about expectations at T0)
+- medical
+- psychological
+- SOMS number of symptoms and intensity
+
+
+Therapy goals are analysed in a separate script. 
+
+# How many values are missing at each time point?
+
+Missing values for life quality (main outcome variable) at all time points in each group:
+
+```{r}
+xtabs(~is.na(d_all$lq_overall)+ d_all$time+d_all$group)
+```
+
+```{r, results='hide'}
+# In the below data table outputs for each time point:
+#
+# * Variables with 0 are complete
+# * Variables with 38 missing values were not assessed
+# * All other numbers indicate missing values
+
+d_all0 <- d_all %>% filter(time=="T0")%>%  droplevels()
+d_all2 <- d_all %>% filter(time=="T2")%>%  droplevels()
+d_all3 <- d_all %>% filter(time=="T3")%>%  droplevels()
+
+na_t0 <- colSums(apply(d_all0, 2, is.na))
+na_t2 <- colSums(apply(d_all2, 2, is.na))
+na_t3 <- colSums(apply(d_all3, 2, is.na))
+```
+
+## Variables and their missing values at T0
+
+All variables were assessed at T0. Missing values exist only for:
+
+
+* Income: 4`#r na_t0[["income"]]`
+* Debt: 2`#r na_t0[["debt"]]`
+* Pain in a family member: `r na_t0[["pain_family_member"]]`
+* Sick leave (Krankenstand): `r na_t0[["sick_leave"]]`
+* Lost days (AU Tage): `r na_t0[["lost_days"]]`
+* Expectations about psychological therapy: `r na_t0[["expectation.success_psyt"]]`
+* Psychotherapy motivation: `r na_t0[["pt_motivation"]]`
+
+## Variables and their missing values at T2
+
+Asessed variables and number of missing values: 2 missing subjects, and 1 additional missing value for SOMS and hypochondria
+
+* Date: `r na_t2[["date"]]`
+* Psychotherapy motivation: `r na_t2[["pt_motivation"]]`
+* Life quality: `r na_t2[["lq_overall"]]`
+* VAS pain intensity: `r na_t2[["vas_pain_intensity"]]`
+* CPSQ: `r na_t2[["cpsq"]]`
+* Anxiety: `r na_t2[["hads_anxiety"]]`
+* depression: `r na_t2[["hads_depression"]]`
+* Soms: `r na_t2[["soms_intensity"]]`
+* Hypochondria: `r na_t2[["wi_hypochondria"]]`
+
+## Variables and their missing values at T3
+
+Variables assessed at T3 but not at T2 and missing values (all other non-assessed variables are the same as those at T2):
+
+* Occupation: `r na_t3[["occupation"]]`
+* Subjective control of pain: `r na_t3[["pain_subj_control"]]`
+* Specialist visits: `r na_t3[["specialist_visits"]]`
+* MPSS: `r na_t3[["mpss_stage"]]`
+* Evaluation of success of therapy in total across both groups:
+    - medical: `r na_t3[["expectation.success_medt"]]`
+    - psychological:  `r na_t3[["expectation.success_psyt"]]`  (only assessed in the TG, all CG values missing)
+    - Separately per group: CG 9/21, TG 10/17 (see R output below)
+
+Variables assessed at all time points and their missing values at T3: 15 missing subjects
+
+
+* Date `r na_t3[["date"]]`
+* Life quality: `r na_t3[["lq_overall"]]`
+* CPSQ: `r na_t3[["lq_overall"]]`
+* VAS pain intensity: `r na_t3[["vas_pain_intensity"]]`
+* Anxiety: `r na_t3[["hads_anxiety"]]`
+* Depression: `r na_t3[["hads_depression"]]`
+* Hypochondria: `r na_t3[["wi_hypochondria"]]`
+* SOMS: `r na_t3[["soms_intensity"]]`
+
+*Missing values for expectation and evaluation of medical therapy at T3*
+
+```{r}
+est <- xtabs(~is.na(d_all3$expectation.success_medt)+ d_all3$time+d_all3$group)
+est <- as.data.frame(est); names(est) <- c("na", "time", "group", "missing"); est[,c(2:4)]
+```
+
+*Missing values for expectation and evaluation of psychological therapy at T3*
+
+```{r}
+est <- xtabs(~is.na(d_all3$expectation.success_psyt)+ d_all3$time+d_all3$group)
+est <- as.data.frame(est); names(est) <- c("na", "time", "group", "missing"); est[,c(2:4)]
+```
+
+
+
+# Methods
+
+## Sample
+
+Sample size
+
+* Patients in total `r paste(ntot[1])` 
+* Patients in the control group `r paste(ncontrol)` 
+* Patients in the treatment group `r paste(ntreatment)` 
+
+## General info about statistical analyses
+
+As in all clinical studies, not all patients assessed before beginning of threatment (here T0), come back for assessement after treatment (here T2), and even less so for long-term follow-ups (here T3 at 6 month). One therefore has to decide whether to exclude all patients with missing data points (per protocol analyses) or to replace missing values in a certain manner. Per protocol analyses describe the effect under ideal conditions, which are however rarely met in reality. For instance, they assume that drop-out of patients was random, while in reality drop-out patients mostly have specific characteristics. In other words, they drop out for a reason. 
+
+One commonly applied method of replacing missing data points is to analyse all patients assessed at T0, and to replace missing values with the last available value. This is known as "intention to treat: Last observation carried forward (LOCF)". Although this has the advantage of analysing all available data, it has the disadvantages of over- and under-estimating treatment and long-term stability of effects depending on the levels observed at previous time points. For example, in the case that a treatment successfully increases a desired outcome (here life quality), LOCF under-estimates the effect of treatment at T2, because all missing values are replaced with values from T0. In contrast, it over-estimates the stability of treatment effects at follow-up assessements (T3), because all missing T3 values are replaced with T2 values from just after treatment.
+
+In the present study, drop-out at T2 was relatively low. Only 2 patients are missing from the control group for all variables except Hypochondria, where 1 additional patient is missing in the treatement group. Since our central objective was to investigate the effect of the psychological treatment, we therefore opted for the LOCF strategy. In contrast to T2, drop out at T3 was considerable, with 15-18 patients missing depending on the variable. With a total sample size of 36, this is a drop-out rate of up to 50%. Therefor, all results regarding changes from T2 to T3 are considerable over-estimates of the stabiity of effects observed at T2, and thus need to be interpreted with caution.
+
+All analysis and figures were done in R version 3.4.4 (2018-03-15). For descriptive as well as inferential statistics, different types of analyses were used for (1) categorical variables, (2) continuous variables that did fullfill assumptions for using linear models (i.e. ANOVAs, t-tests etc) and (3) continuous variables that did not or ordinal variables. The following sections explain the different analyses approaches.  
+
+## Descriptive statistics
+
+For all categorical variables, we calculated the proportion of patients per group and time point.
+<!-- Categorical variables assessed only at T0 were: -->
+
+For all continuous variables, assessed baseline values as well as differences between time points (change scores) in each group. We visually checked for normal distributions using a histogram. Perfect normal distribution is unlikely given the small sample sizes of 21 and 17 per group, that further decreased at later time points. Thus, if a variable was approximately normally distributed, we calculated mean, median, standard deviation (SD), mininum and maximum values, and 95% between-subject confidence intervals. We chose between-subject confidence intervals to focus on comparison between the control and treatment group (rather than on comparison between time points.) For all of these variables, results are illustrated as bar plots. 
+
+If a variable was not normally distributed, we instead calculated 25%, 50% and 75%  quantiles, which are cut points that divide the observations in a sample into four groups of equal size. That is, 25% percent of all patients have values below the 25% quantile, 75% have values below the 75% quantile, etc. The 50% quantile corresponds to the median. For all these variables, results are illustrated as boxplots, in which these three quantiles are easily visible (the box corresponds to the area between 25% and 75% quantiles, and the thicker line within the box corresponds to the median.)
+
+## Corrections for multiple comparisons for inferential statistics
+
+We generally used a threshold of $\alpha$ = 0.05. Whenever we performed multiple comparisons or correlations, we accounted for multiple comparisons by adjusting this threshold using the Bonferroni method ($\alpha$ divided by number of performed tests) within each of the following sets of related variables: 
+
+* Life quality $\alpha$ = 0.05
+* Psychological Health: $\alpha$ /3 = 0.0167
+    - Anxiety
+    - Depression
+  - Hypochondria
+* Pain: $\alpha$ /3 = 0.0167
+    - VAS pain intensity
+    - MPSQ stages
+    - CPSQ subjective constraints
+* Sickness-related behaviours $\alpha$ /2 = 0.025
+    - Lost days 
+    - Specialist visits
+* Subjective ratings related to the psychological threatment: $\alpha$ /2 = 0.025
+    - Expectations about and evaluation of the psychological treatment
+    - Psychotherapy motivation
+
+## Assessing the effect of treatment
+
+### Continuous variables
+
+For all continuous variables assessed at more than one time point, we tested for homogeneity of variances by performing Levene Tests on (1) baseline scores and (2) changes between time points. Next, we compared the T0 baseline scores between groups using Two-Sample T-tests. We further visually checked for normal distributions of the changes scores separately in each group using histograms. If these assumptions were met, we subjected all continuous variables to an ANOVA and post-hoc t-test. 
+
+We assessed treatment effects for the following continuous variables: 
+
+* Assessed at T0, T2 and T3: life quality, VAS pain intensity, anxiety, depression, hypochondria, SOMS number of symptoms and intensity
+* Assessed at T0 and T2: psychotherapy motivation
+
+If all assumptions were met, we assessed the treatment effect for each variable  with mixed-effects repeated ANOVA with (T0: baseline, T2: just after treatment, T3: 6 months after treatment) as a within-subject factor and group (control, treatment) as a between subject factor. In these ANOVAs, it is the interaction of time with group that indicates a differential treatment effect in the two groups. The $\alpha$ threshold used to determine whether an interaction was significant was Bonferroni-adjusted per set of related variables. Second, we performed Bonferroni-corrected post-hoc t-tests on the change T2-T0 and the change T3-T2, that is, p-values were compared to an alpha threshold of p = 0.025. In case of a significant main effect of time, we performed dependent post-hoc t-test on the changes T2-T0 and T3-T2, respectively, to verify which change was significant. In case of a significant interaction, we performed between-group post-hoc t-tests on the changes T2-T0 and T3-T2, respectively, to verify which change differed between groups. 
+
+### Ordinal variables or continuous variables where assumptions for linear models were not met
+
+If any assumption was not met (non-homogeneous variances, no normal distribution, or ordinal variables), we assessed baseline differences with a Wilcoxon Rank Sum test (also called a Mann-Whitney Test, the alternative for an independent t-test). Here, the effect size is a “difference in location” estimate, which indicates the median of the difference between a value from group 1 and a value from group 2. 
+
+<!-- https://data.library.virginia.edu/the-wilcoxon-rank-sum-test/ -->
+
+To assess treatment effects in variables assessed at three time points, we performed a Friedman test with the within-subject factor time (T0, T2, T3) in each group separately as an alternative to a two-way mixed repeated-measures ANOVA. In case the variable was only assessed at two time points, we instead performed a Wilcoxon Signed Rank Test, which is the alternative for a dependent t-test when variables are ordinal, or do not fullfill all assumptions. Unfortunately, there is no alternative that allows to include both within- and between-subject measures into one model. Given that the Wilcoxon Signed Rank is performed on ranks rather than actual values, we provide the proportion of patients that scored lower or higher at the second time point as an effect size. In case of a significant time effect in the Friedman test, we performed post-hoc tests with Bonferroni correction. 
+
+* Ordinal variables are: expectations about and evaluation of therapy, MPSS stage, CPSQ level
+* Continuous variables that did not meet all required assumptions are: lost days, specialist visits, vas pain intensity 
+
+### Categorical variables: occupation change from T0 to T3
+
+Not done yet. Probably the equivalent of a chi-squared test for dependent data. Let me know if you want this! 
+
+
+\newpage
+
+# Socio-economic variables
+
+## Frequencies and percent for all categorical variables at T0:
+
+Values marked with NA are missing values (not available).
+
+```{r, fig.width =6, fig.height=11, fig.cap="Categorical socioeconomic variables", cache=TRUE}
+#plot_socio_eco #ratio width height: 
+```
+
+__Gender__
+
+```{r, fig.width =4.5, fig.height=3.5, fig.cap="Gender", cache=TRUE}
+plot_gender
+
+```
+
+-
+
+```{r}
+as.data.frame(tp[["gender"]])
+
+#baseline level comparison: chi-square test, non-parametric
+sucesses <- subset(as.data.frame(tp[["gender"]]), Categories=="women")$Frequency
+ngroup <- as.data.frame(tp[["gender"]]) %>% group_by(group) %>% mutate(n = sum(Frequency)) %>% select(group,n)
+pf0 <- round(as.numeric(t(unlist(prop.test(x=sucesses, n=c(ngroup$n[1], ngroup$n[2]),correct =TRUE)))[1:3]), digits=3) 
+#correct = T: Yates correction because of small sample
+apa.pf0 = paste("(", pf0[2], ") = ", pf0[1],", p = ", pf0[3], sep="")
+
+```
+There was no baseline difference (($\chi^2$`r apa.pf0`).
+
+\newpage
+
+
+__Education__
+
+```{r, fig.width =6, fig.height=3.5, fig.cap="Education", cache=TRUE}
+plot_edu
+```
+
+-
+
+```{r}
+as.data.frame(tp[["education"]])
+
+contingency <- xtabs(~education+group, data=d0)
+chi <- round(as.numeric(t(unlist(chisq.test(contingency, correct=T)))[1:3]), digits=3)
+apa.chi = paste("(", chi[2], ") = ", chi[1],", p = ", chi[3], sep="")
+```
+There was no significant baseline difference (($\chi^2$`r apa.chi`).
+
+\newpage
+
+__Occupation__
+
+
+```{r, fig.width =6, fig.height=3.5, fig.cap="occupation", cache=TRUE}
+plot_job
+```
+
+-
+
+```{r}
+as.data.frame(tp[["occupation"]])
+contingency <- xtabs(~occupation+group, data=d0)
+chi <- round(as.numeric(t(unlist(chisq.test(contingency, correct=T)))[1:3]), digits=3)
+apa.chi = paste("(", chi[2], ") = ", chi[1],", p = ", chi[3], sep="")
+```
+There was no significant baseline difference (($\chi^2$`r apa.chi`).
+
+\newpage
+
+
+__Marital status__
+
+
+```{r, fig.width =6, fig.height=3.5, fig.cap="marital status", cache=TRUE}
+plot_marital
+```
+-
+
+```{r}
+as.data.frame(tp[["marital_status"]])
+contingency <- xtabs(~marital_status+group, data=d0)
+chi <- round(as.numeric(t(unlist(chisq.test(contingency, correct=T)))[1:3]), digits=3)
+apa.chi = paste("(", chi[2], ") = ", chi[1],", p = ", chi[3], sep="")
+```
+There was no significant baseline difference (($\chi^2$`r apa.chi`).
+
+\newpage
+
+__Income__
+
+
+```{r, fig.width =5, fig.height=3.5, fig.cap="Income", cache=TRUE}
+plot_income
+```
+-
+
+```{r}
+as.data.frame(tp[["income"]])
+contingency <- xtabs(~income+group, data=d0)
+chi <- round(as.numeric(t(unlist(chisq.test(contingency, correct=T)))[1:3]), digits=3)
+apa.chi = paste("(", chi[2], ") = ", chi[1],", p = ", chi[3], sep="")
+```
+There was no significant baseline difference (($\chi^2$`r apa.chi`).
+
+\newpage
+
+__Debt__
+
+```{r, fig.width =5, fig.height=3.5, fig.cap="Debt", cache=TRUE}
+plot_debt
+```
+-
+
+```{r}
+as.data.frame(tp[["debt"]])
+contingency <- xtabs(~debt+group, data=d0)
+chi <- round(as.numeric(t(unlist(chisq.test(contingency, correct=T)))[1:3]), digits=3)
+apa.chi = paste("(", chi[2], ") = ", chi[1],", p = ", chi[3], sep="")
+```
+There was no significant baseline difference (($\chi^2$`r apa.chi`).
+
+\newpage
+
+## Occupation change from T0 to T3
+
+Changes (of available values, many are missing):
+
+*	unemployed => retired 2x
+*	employee => unemployed 2x
+*	employee => re-training 1x
+*	employee => self-employed 1x
+
+
+```{r, fig.height=4, fig.width=6}
+plot_occ03
+```
+\newpage
+
+## Age
+
+```{r}
+t <- t.test(age~group, data = d0, var.equal=T); #t-test
+apa.t <- apa(t, format="rmarkdown")
+```
+
+Age between the two groups did not differ (`r apa.t`). 
+
+Descriptive statistics at T0 and figure for age: 
+
+```{r, fig.width =3, fig.asp = 1, fig.cap="Age per group at T0"}
+
+as.data.frame(desc_age)
+
+plot_age
+```
+
+\newpage
+
+# Pain diagnostics at T0
+
+```{r, plot pain diagnostics T0, fig.width =5, fig.height=10.5,  cache=TRUE}
+#plot_pain
+```
+
+__Pain in a family member__
+
+```{r, pain family member, fig.width=6, fig.height=14/4, cache=TRUE}
+plot_pain_fam
+
+as.data.frame(tp[["pain_family_member"]])
+#baseline level comparison: chi-square test, non-parametric
+sucesses <- subset(as.data.frame(tp[["pain_family_member"]]), Categories=="Yes")$Frequency
+ngroup <- as.data.frame(tp[["pain_family_member"]]) %>% group_by(group) %>% mutate(n = sum(Frequency)) %>% select(group,n)
+pf0 <- round(as.numeric(t(unlist(prop.test(x=sucesses, n=c(ngroup$n[1], ngroup$n[2]),correct =TRUE)))[1:3]), digits=3) 
+#correct = T: Yates correction because of small sample
+apa.pf0 = paste("(", pf0[2], ") = ", pf0[1],", p = ", pf0[3], sep="")
+```
+
+There was no baseline difference in pain in the number of patients who reported a family member suffering from chronic pain (($\chi^2$`r apa.pf0`).
+
+__Sick leave__
+
+```{r, sick leave, fig.width=5, fig.height=14/4,cache=TRUE}
+
+plot_sick
+
+as.data.frame(tp[["sick_leave"]])
+#baseline level comparison: chi-square test, non-parametric
+sucesses <- subset(as.data.frame(tp[["sick_leave"]]), Categories=="yes")$Frequency
+
+sl0 <- round(as.numeric(t(unlist(prop.test(x=sucesses, n=c(ncontrol, ntreatment),correct =TRUE)))[1:3]), digits=3) 
+#correct = T: Yates correction because of small sample
+apa.sl0 = paste("(", sl0[2], ") = ", sl0[1],", p = ", sl0[3], sep="")
+```
+
+There was no baseline difference in sick leave (($\chi^2$`r apa.sl0`).
+
+__Plans to retire__
+
+```{r, plan to retire, fig.width=6.5, fig.height=14/4, cache=TRUE}
+plot_retired
+
+as.data.frame(tp[["retired"]])
+contingency <- xtabs(~retired+group, data=d0)
+chi <- round(as.numeric(t(unlist(chisq.test(contingency, correct=T)))[1:3]), digits=3)
+apa.chi = paste("(", chi[2], ") = ", chi[1],", p = ", chi[3], sep="")
+```
+There was no significant baseline difference (($\chi^2$`r apa.chi`).
+
+
+__Subjective control of pain__
+
+```{r, pain control, fig.width=5.5, fig.height=3.5, cache=TRUE}
+
+plot_pain_control
+
+as.data.frame(tp[["pain_subj_control"]])
+ write.csv2(x=as.data.frame(tp[["pain_subj_control"]]), file = "../output/pain_control.csv", row.names=F)
+ 
+contingency <- xtabs(~pain_subj_control+group, data=d0)
+chi <- round(as.numeric(t(unlist(chisq.test(contingency, correct=T)))[1:3]), digits=3)
+apa.chi = paste("(", chi[2], ") = ", chi[1],", p = ", chi[3], sep="")
+```
+There was no significant baseline difference (($\chi^2$`r apa.chi`).
+
+```{r, compare combined levels pain control}
+
+#without this paragraph knitting does not find the columns of this dataframe with pypes %>% 
+pcdata <- as.data.frame(tp[["pain_subj_control"]])
+pcdata$Categories <- as.integer(pcdata$Categories)
+pcdata$group <- as.integer(pcdata$group)
+pcdata$Frequency <- as.integer(pcdata$Frequency)
+
+#what I actually wanted to do: 
+paincontrolgrouped <-  pcdata %>%
+  mutate(lowhigh = ifelse(Categories < 3, 0, 1)) %>%
+  group_by(lowhigh, group) %>%
+  mutate(n=sum(Frequency)) %>%
+  select(group,n, lowhigh) %>%
+  filter(row_number()==1) %>% 
+  ungroup()
+
+#baseline level comparison: chi-square test, non-parametric
+low <- subset(paincontrolgrouped, lowhigh==0)$n
+ngroup <- paincontrolgrouped %>% group_by(group) %>% mutate(n = sum(n)) %>% select(group,n) %>% filter(row_number()==1) %>% ungroup()
+ngroup <- ngroup$n
+pcg0 <- round(as.numeric(t(unlist(prop.test(x=c(9,12), n=c(20,17),correct =TRUE)))[1:3]), digits=3) #x=low, n=ngroup does not work with knitting
+#correct = T: Yates correction because of small sample
+apa.pcg0 = paste("(", pcg0[2], ") = ", pcg0[1],", p = ", pcg0[3], sep="")
+```
+
+We grouped patients into those who reported low vs. average to high ability to control their pain at T0 (Levels "Not at all" & 2 vs. Levels 3,4 & "very well"). Although there were more patients reporting low subjective pain control in the treatment group, this difference was not statistically significant ($\chi^2$`r apa.pcg0`). 
+
+## Pain duration in years at T0
+
+Pain duration is not normally distributed, therefore I calculated quantiles instead of mean and SD.
+
+```{r, fig.width =6, fig.height=4}
+ggplot(dp0, aes(x=pain_duration_years, fill=Group))+  geom_histogram(binwidth=5,position="dodge")+scale_fill_manual(values=groupcol)
+plot_painyears
+```
+
+```{r}
+as.data.frame(quant_painyears)
+
+t0 <-w_pd0
+apa.t0 <- paste("W = ", t0[1], ", p = ", t0[2], " , difference in location = ", t0[3],sep="")
+```
+
+Pain duration did not significantly differ between groups at baseline (`r apa.t0`). 
+
+\newpage
+
+# Testing the assumption of homogeneity of variances for all continuous variables with 3 time points 
+
+We assessed the assumption of homogeneity of variances between groups using Levene Tests. For all continuous variables assessed at T0, T2 and T3, baseline levels at T0 and the change scores T0-T2 and T3-T2 fullfilled the assumption. Because results vary more between the different variables regarding the assumption of normality, we report it separately for each variable in the corresponding sections below. 
+
+```{r}
+#this is done in script 02 - because Rmarkdown throws an error "column date must have unique name" - but it already does - not sure what causes the error
+#levenetest_T0 <- as.data.frame(t(sapply(d0[,c("age", "lq_overall", "lq_phys", "lq_psych", "lq_social", "lq_envir", "vas_pain_intensity", "hads_depression", "hads_anxiety", "wi_hypochondria", "pt_motivation")], function(x)round(unlist(leveneTest(x~d0$group, var.equal=T))[c("Df1", "Df2", "F value1", "Pr(>F)1")],digits=3))))
+
+#dlevene02 <- diffs %>% filter(diff=="T2-T0")
+#levenetest_T2T0 <- as.data.frame(t(sapply(dlevene02[,c("lq_phys_diff", "lq_psych_diff", "lq_social_diff", "lq_envir_diff", "lq_overall_diff", "vas_pain_intensity_diff", "hads_anxiety_diff", "hads_depression_diff", "wi_hypochondria_diff")], function(x)round(unlist(leveneTest(x~dlevene02$group, var.equal=T))[c("Df1", "Df2", "F value1", "Pr(>F)1")],digits=3))))
+
+#dlevene03 <- diffs %>% filter(diff=="T3-T2")
+#levenetest_T3T2 <- as.data.frame(t(sapply(dlevene03[,c("lq_phys_diff", "lq_psych_diff", "lq_social_diff", "lq_envir_diff", "lq_overall_diff", "vas_pain_intensity_diff", "hads_anxiety_diff", "hads_depression_diff", "wi_hypochondria_diff")], function(x)round(unlist(leveneTest(x~dlevene03$group, var.equal=T))[c("Df1", "Df2", "F value1", "Pr(>F)1")],digits=3))))
+```
+
+
+
+*Levene Test at T0*
+
+```{r}
+levenetest_T0
+```
+
+
+
+*Levene Test T2-T0*
+
+```{r}
+levenetest_T2T0
+```
+
+
+
+*Levene Test T3-T2*
+
+```{r}
+levenetest_T3T2
+```
+
+
+# Life quality
+
+Regarding the assumption of normality, life quality scores were normally distributed at T0. The differences between time points were not entirely normally distributed, but good enough for such a small sample size. Because logtransformation did not improve the distribution, we used untransformed values in all analyses. 
+
+*Normal distribution at T0*
+
+```{r}
+ggplot(d0, aes(x=lq_overall, fill=group))+ geom_histogram(position="stack")+scale_fill_manual(values=groupcol)+ labs(x="Life quality", fill="Group")+ facet_grid(~time)+ theme(legend.position = "bottom")+scale_x_continuous(breaks=seq(-50,62.5,25)) 
+```
+
+<!-- *Normal distribution of differences* -->
+
+<!-- ```{r} -->
+<!-- #deactivate if not working -->
+<!-- ggplot(diffs, aes(x=lq_overall_diff, fill=group))+ geom_histogram(position="stack")+scale_fill_manual(values=groupcol)+ labs(x="Life quality", fill="Group")+ facet_grid(~diff)+theme(legend.position = "bottom")+scale_x_continuous(breaks=seq(-50,62.5,25)) -->
+<!-- ``` -->
+
+\newpage
+
+*Overall life quality in the whole group*
+
+Life quality across both groups and all 3 time points
+
+```{r}
+as.data.frame(desc_lq_wholestudy)
+```
+
+Life quality across both groups for each time point
+```{r}
+as.data.frame(desc_lq_wholegroup)
+```
+
+```{r, life quality all, fig.width=7, fig.asp=1.3, fig.cap="Oveall life quality in the entire group" }
+plot_lq_all
+```
+
+
+*Descriptive statistics of overall life quality per group*
+
+The table and figure below illustrate the levels of life quality at T0, T2 and T3 in each group. 
+
+```{r}
+as.data.frame(desc_lq)
+```
+
+```{r, life quality group plot, fig.width=7, fig.asp=1.3}
+plot_lq
+
+#baseline level t-test
+t0 <- t.test(lq_overall~group, data = d0, var.equal=T); #t-test
+apa.t0 <- apa(t0, format="rmarkdown")
+
+#define function to calculate partial eta squared: F*dfn/F*dfn+dfd see Lakens 2013 page 6
+peta <- function(x) {a$ANOVA[x,"F"]*a$ANOVA[x, "DFn"]/(a$ANOVA[x,"F"]*a$ANOVA[x, "DFn"]+a$ANOVA[x, "DFd"])}
+#perform ANOVA
+a <- ezANOVA(data=d, dv=lq_overall, wid = subid, within=time, between=group,  type=3, detailed=T)
+a$ANOVA[,"peta"] <- c(peta(1), peta(2), peta(3), peta(4)) #add partial eta squared
+apa.a<- as.vector(apa(a, format= "rmarkdown")); #"rmarkdown" for word document
+
+#perform post-hoc tests for interaction
+t <- t.test(lq_overall_diff ~ group, var.equal=T, data = subset(diffs, diff == "T2-T0"))
+apa.t20  <- apa(t, format="rmarkdown")
+t <- t.test(lq_overall_diff ~ group, var.equal=T, data = subset(diffs, diff == "T3-T2"))
+apa.t32  <- apa(t, format="rmarkdown")
+
+# changes in each group separately
+data = subset(diffs, group =="control" & diff=="T2-T0"); tc02 <- apa(t.test(data$lq_overall_diff,mu=0, var.equal=T))
+data = subset(diffs, group =="treatment" & diff=="T2-T0"); tt02 <- apa(t.test(data$lq_overall_diff,mu=0, var.equal=T))
+data = subset(diffs, group =="control" & diff=="T3-T2"); tc23 <- apa(t.test(data$lq_overall_diff,mu=0, var.equal=T))
+data = subset(diffs, group =="treatment" & diff=="T3-T2"); tt23 <- apa(t.test(data$lq_overall_diff,mu=0, var.equal=T))
+```
+
+**Results**
+
+Baseline levels of life quality were higher in the control than the treatment group (`r apa.t0`). The ANOVA on life quality scores revealed an effect of group (`r paste(apa.a[2,2])`) , no effect of time (`r paste(apa.a[3,2])`), but an interaction of group with time (`r paste(apa.a[4,2])`). A post-hoc t-tests indicated a decrease of life quality from T0 to T2 in the control group, as opposed to an increase in the treatment group (`r apa.t20`). Due to the baseline difference with much higher life quality in the control group, this cannot be interpreted only as an effect of the psychological treatment. Seperate t-tests on the change T2-T0 (corrected $\alpha$ = 0.0125) in each group show a larger decreasing effect in the control group  (`r tc02`), in comparison to the increasing effect in the treatment group (`r tt02`). 
+
+From T2 to T3, life quality of the control group increased again, and remained stable in the treatment group. Yet, this change was not significantly different between groups (`r apa.t32`, against corrected  $\alpha$ = 0.025). Here, seperate tests in each group (corrected $\alpha$ = 0.0125) suggest an increse in the control group (`r tc23`), but no change in the treatment group (`r tt23`) Before concluding that the treatment effect was stable in the treatment group, one needs to consider the over-estimation due to the LOCF approach.
+
+## Life quality in people with personality disorders
+
+```{r, personality disorder LQ, cache = TRUE}
+#add personality disorders data to the d0 dataframe
+axis2 <- icd0 %>% #loaded in script 07icd10
+    filter(n_axis1 == 1) %>% 
+    mutate(personality_disorder =factor(ifelse(axis2=="None", 0, 1), levels=c(0,1), labels=c("No", "Yes")),
+           subid = as.factor(subid)) %>% 
+  select(-date, -n_axis1, -diagnosis_type, -group)
+axis2lq <- inner_join(d0, axis2)
+
+#t-test comparing life quality personality disorders vs. none
+t0 <- t.test(lq_overall~personality_disorder, data = axis2lq, var.equal=T); #t-test
+apa.t0 <- apa(t0, format="rmarkdown")
+
+
+#descriptives LQ by personality disorder yes/no
+desc_lq_axis2<- axis2lq %>%
+  group_by(personality_disorder) %>% 
+  summarise(n=n(), 
+            mean = round(mean(lq_overall), 2), 
+            median = round(median(lq_overall),2), 
+            sd = round(sd(lq_overall), 2), 
+            min = round(min(lq_overall), 2), 
+            max = round(max(lq_overall), 2), 
+            lowCI = round(mean-1.96*sd/sqrt(n()),2), 
+            hiCI = round(mean+1.96*sd/sqrt(n()),2))
+
+as.data.frame(desc_lq_axis2)
+
+#figure of mean lq in patients with/without personality disorder
+s=15
+plot_pd_lq <- ggplot(axis2lq, aes(x=personality_disorder, y=lq_overall, fill=personality_disorder)) +  
+  #plot bars
+  stat_summary(fun = mean, geom="bar", size=1.3, position=position_dodge(0.95),alpha = 0.5, aes(colour=personality_disorder))+
+  #plot individual data points
+  geom_dotplot(binwidth = 2, dotsize=0.7, stroke=1.5, binaxis = "y", stackdir = "center")+
+   #plot error bars
+  stat_summary(fun.data=mean_cl_normal, geom="errorbar", width=0.3, size = 1.3, position=position_dodge(0.95),aes(colour=personality_disorder), show.legend=F)+
+  labs(y="Overall life quality", x="Personality disorder") + 
+  scale_fill_manual(values=groupcol)+scale_color_manual(values=groupcol)+
+  theme_bw() +   #Remove dark background
+  theme(text=element_text(size=s),legend.text=element_text(size=s),
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(),#remove grid lines
+        legend.position="none")
+#pdf('../figures/lq_personality_disorders.pdf', height = 3.5, width = 3.5); plot_pd_lq; dev.off()
+```
+
+Life quality was considerably lower in people with a personality disorder or accentuation, compared to other patients, but the difference is not significant given the small sample size `r apa.t0`. 
+
+```{r, plot personality disorder lq,  fig.width =7/2, fig.asp = 1}
+plot_pd_lq
+```
+
+\newpage
+
+# Time of Year
+
+##Were the groups systematically tested at different times?
+
+```{r, results='hide'}
+prop.season$freq = round(prop.season$freq*100, digits=0)
+```
+
+For T0, the TG reported lower life quality than the CG. One potential explanation for this baseline difference is that patients for the two groups were tested at different times during the year, with the TG patients clustering in the winter months. Figure X shows the time of the year at which patients in each group were tested at different levels of detail, that is, seperated into periods of (A) 3 and (B) 1 month. People in Austria would probably experience seasonal affective disorder ("winter depression"") most strongly during January to March, towards the end of winter. We therefore looked at which proportion of patients from each group was tested in each season (i.e. 3 months periods).
+
+```{r, fig.width=11, fig.height=10}
+plot_time_of_year
+```
+
+
+
+At T0, `r subset(prop.season, Time=="T0" & Group=="Control" & season=="Jan-Mar")$freq`% of the CG were tested in October-March, compared to `r subset(prop.season, Time=="T0" & Group=="Treatment" & season=="Jan-Mar")$freq`%  of the TG. These two testing proportions are quite similar. There are bigger differences in April-June, where the TG was tested more (TG `r subset(prop.season, Time=="T0" & Group=="Treatment" & season=="Apr-Jun")$freq`vs CG `r subset(prop.season, Time=="T0" & Group=="Control" & season=="Apr-Jun")$freq`), and in October-December, where it was tested less (TG `r subset(prop.season, Time=="T0" & Group=="Treatment" & season=="Oct-Dec")$freq`vs CG `r subset(prop.season, Time=="T0" & Group=="Control" & season=="Oct-Dec")$freq`).
+
+Although these differences seem in line with a contribution of time of year to the baseline group difference in life quality, the patterns observed for T2 and T3 do not lend further support to this hypothesis. At T2, the TG was not at all tested in January-Marched, tested more during October-December, and less during July-September. Yet, there life quality is similar to the CG. At T3, there is no testing difference in January-March, neither for spring and summer if these two time periods are combined. Slightly more testing sessions in the TG (TG `r subset(prop.season, Time=="T3" & Group=="Treatment" & season=="Oct-Dec")$freq`vs CG `r subset(prop.season, Time=="T3" & Group=="Control" & season=="Oct-Dec")$freq`) during October to December speak for the reverse of the life quality difference observed at T3 (i.e. higher life quality scores in the CG, rather than the TG). Looking only at testing time during the year, it is unclear whether time of year could have contributed to the reported life quality scores. Next, we look at whether life quality actually differs between the different seasons in each of the groups.
+
+##Time of year does not impact life quality.
+
+The TG has lower life quality scores than the CG regardless of season. A systematic influence of time of year on reports of life quality thus seems unlikely, despite of the minor differences in testing time at T0.
+
+
+```{r, width=7, height=5}
+plot_lq_season
+```
+
+##Does one of the groups have lower levels of life quality during autumn or winter for one specific time point?
+
+At T0, the treatment group has lower values than the control group regardless of season. Thus, time of year cannot explain the systematic difference between the two groups at T0. For T2 and T3, the treatment group has mostly similar, and sometimes lower life quality. Specifically, the treatment group reported lower life quality at only during July to September, and similar values otherwise. At T3, it reported lower values only during April to June. (There were not enough participants during  for conclusions regarding July-Sep, or January-March.)
+
+
+```{r, fig.width=5, fig.height=8}
+plot_lq_season_T
+```
+
+\newpage
+
+# Change in pain-related variables
+
+## Change of VAS pain intensity across time points
+
+VAS pain intensity was normally distributed at baseline. Yet, the differences between time points weren't. Therefore, we performed a Friedman's ANOVA in each group separately. 
+
+*Normal distribution at T0*
+
+```{r,fig.width=6, fig.asp=.5}
+ggplot(d0, aes(x=vas_pain_intensity, fill=group))+ geom_histogram(binwidth=1, position="dodge")+scale_fill_manual(values=groupcol)+ labs(x="VAS pain intensity", fill="Group")+ facet_grid(~time)+theme(legend.position = "bottom")+scale_x_continuous(breaks=seq(2,10,2)) 
+```
+
+*Normal distribution of differences*
+
+```{r,fig.width=6, fig.asp=.5}
+ggplot(d, aes(x=vas_pain_intensity, fill=group))+ geom_histogram(binwidth = 1, position="dodge")+scale_fill_manual(values=groupcol)+ labs(x="Vas pain intensity", fill="Group")+ facet_grid(~time)+theme(legend.position = "bottom")
+```
+
+The table and figure below illustrate the levels of pain intensity at T0, T2 and T3 in each group.
+
+*Descriptive statistics of pain intensity*
+
+```{r, fig.width=6, fig.height=4}
+as.data.frame(desc_vas)
+
+plot_vas
+```
+
+```{r}
+#baseline level t-test
+t0 <- t.test(vas_pain_intensity~group, data = d0, var.equal=T); #t-test
+apa.t0 <- apa(t0, format="rmarkdown")
+
+dc <- subset(d, group=="control")%>% droplevels()
+f <- round(as.numeric(t(unlist(friedman.test(vas_pain_intensity ~ time | subid , data=as.data.frame(dc))))[1:3]), 3)
+apa.fc = paste("(", f[2], ") = ", f[1],", p = ", f[3], sep="")
+
+dt <- subset(d, group=="treatment")%>% droplevels() %>% dplyr::select(time, subid, vas_pain_intensity)
+f <- round(as.numeric(t(unlist(friedman.test(vas_pain_intensity ~ time | subid , data=as.data.frame(dt))))[1:3]), 3)
+apa.ft = paste("(", f[2], ") = ", f[1],", p = ", f[3], sep="")
+```
+
+There was a baseline differences in pain intensity, with higher levels in control group than the treatment group (`r apa.t0 `). The Friedman test yielded a significant effect of time in the control group ($\chi^2$`r apa.fc`), as well as the treatment group (($\chi^2$`r apa.ft`). This suggests a gradual decrease of pain intensity from T0 to T3, that was similar in the two groups.  
+
+
+
+## Change of SOMS symptom number across time points
+
+Both baseline values and differences were sufficiently close to a normal distribution. 
+
+```{r,fig.width=6, fig.asp=.5}
+ggplot(d0, aes(x=soms_n, fill=group))+ geom_histogram(binwidth=5, position="dodge")+scale_fill_manual(values=groupcol)+ labs(x="SOMS number of symptoms", fill="Group")+ facet_grid(~time)+theme(legend.position = "bottom")+scale_x_continuous(breaks=seq(0,40,5)) 
+```
+
+*Normal distribution of differences*
+
+```{r,fig.width=6, fig.asp=.5}
+ggplot(d, aes(x=soms_n, fill=group))+ geom_histogram(binwidth = 5, position="dodge")+scale_fill_manual(values=groupcol)+ labs(x="SOMS number of symptoms", fill="Group")+ facet_grid(~time)+theme(legend.position = "bottom")
+```
+
+The table and figure below illustrate the levels of pain intensity at T0, T2 and T3 in each group.
+
+```{r, fig.width=5, fig.height=5}
+as.data.frame(desc_somsn)
+plot_somsn
+```
+
+```{r}
+#baseline level t-test
+t0 <- t.test(soms_n~group, data = d0, var.equal=T); #t-test
+apa.t0 <- apa(t0, format="rmarkdown")
+
+#perform ANOVA
+a <- ezANOVA(data=d, dv=soms_n, wid = subid, within=time, between=group,  type=3, detailed=T)
+a$ANOVA[,"peta"] <- c(peta(1), peta(2), peta(3), peta(4)) #add partial eta squared
+apa.a<- apa(a, format= "rmarkdown") #"rmarkdown" for word document
+```
+
+* No SOMS symptoms baseline difference between groups `r apa.t0`
+* ANOVA SOMS symptoms group by time 
+    - no significant effect of group (`r paste(apa.a[2,2])`) 
+    - no significant effect of time (`r paste(apa.a[3,2])`)
+    - no significant interaction of group with time (`r paste(apa.a[4,2])`)
+    
+    
+\newpage
+
+## Change of SOMS intensity across time points
+
+Both baseline values and differences were sufficiently close to a normal distribution. 
+
+```{r,fig.width=6, fig.asp=.5}
+ggplot(d0, aes(x=soms_intensity, fill=group))+ geom_histogram(binwidth=15, position="dodge")+scale_fill_manual(values=groupcol)+ labs(x="SOMS intensity", fill="Group")+ facet_grid(~time)+theme(legend.position = "bottom")+scale_x_continuous(breaks=seq(0,100,10)) 
+```
+
+*Normal distribution of differences*
+
+```{r,fig.width=6, fig.asp=.5}
+ggplot(d, aes(x=soms_intensity, fill=group))+ geom_histogram(binwidth = 15, position="dodge")+scale_fill_manual(values=groupcol)+ labs(x="SOMS intensity", fill="Group")+ facet_grid(~time)+theme(legend.position = "bottom")
+```
+
+The table and figure below illustrate the levels of pain intensity at T0, T2 and T3 in each group.
+
+```{r, fig.width=5, fig.height=5}
+as.data.frame(desc_somsintensity)
+plot_somsintensity
+```
+
+```{r}
+#baseline level t-test
+t0 <- t.test(soms_intensity~group, data = d0, var.equal=T); #t-test
+apa.t0 <- apa(t0, format="rmarkdown")
+
+#perform ANOVA
+a <- ezANOVA(data=d, dv=soms_intensity, wid = subid, within=time, between=group,  type=3, detailed=T)
+a$ANOVA[,"peta"] <- c(peta(1), peta(2), peta(3), peta(4)) #add partial eta squared
+apa.a<- apa(a, format= "rmarkdown") #"rmarkdown" for word document
+```
+
+* No SOMS intensity baseline difference between groups `r apa.t0`
+* ANOVA SOMS intensity group by time 
+    - no significant effect of group (`r paste(apa.a[2,2])`) 
+    - no significant effect of time (`r paste(apa.a[3,2])`)
+    - no significant interaction of group with time (`r paste(apa.a[4,2])`)
+
+\newpage
+
+## Change of CPSQ: Subjective constraints across time points
+
+
+*Descriptive statistics for CPSQ*
+
+```{r}
+as.data.frame(cpsq_prop)
+
+plot_cpsq
+```
+
+**Change across time**
+
+```{r}
+#baseline levels
+t0 <- wcpsq
+apa.t0 <- paste("W = ", t0[1], ", p = ", t0[2], " , difference in location = ", t0[3],sep="")
+
+dc <- subset(d, group=="control")%>% droplevels()
+f <- round(as.numeric(t(unlist(friedman.test(cpsq ~ time | subid , data=as.data.frame(dc))))[1:3]), 3)
+
+apa.fc = paste("(", f[2], ") = ", f[1],", p = ", f[3], sep="")
+
+dt <- subset(d, group=="treatment")%>% droplevels()
+f <- round(as.numeric(t(unlist(friedman.test(cpsq ~ time | subid , data=as.data.frame(dt))))[1:3]), 3)
+apa.ft = paste("(", f[2], ") = ", f[1],", p = ", f[3], sep="")
+```
+
+
+* No significant baseline difference: `r apa.t0`
+* No significant change in the control group: $\chi^2$`r apa.fc` 
+* Significant change in the treatment group: $\chi^2$ `r apa.ft`
+
+# Combined levels CPSQ
+
+```{r}
+
+#cpsq grouped levels
+cpsqgrouped <-  d %>%
+  mutate(lowhigh = ifelse(cpsq < 3, 0, 1))  
+  # group_by(lowhigh, group, time) %>%
+  # mutate(n=n()) %>%
+  # select(group,n, lowhigh, time) %>%
+  # filter(row_number()==1) %>% 
+  # ungroup()
+dc <- subset(cpsqgrouped, group=="control")%>% droplevels()
+f <- round(as.numeric(t(unlist(friedman.test(lowhigh ~ time | subid , data=as.data.frame(dc))))[1:3]), 3)
+
+apa.fc = paste("(", f[2], ") = ", f[1],", p = ", f[3], sep="")
+
+dt <- subset(cpsqgrouped, group=="treatment")%>% droplevels()
+f <- round(as.numeric(t(unlist(friedman.test(lowhigh ~ time | subid , data=as.data.frame(dt))))[1:3]), 3)
+apa.ft = paste("(", f[2], ") = ", f[1],", p = ", f[3], sep="")
+```
+
+We grouped CPSQ levels into low (1,2) vs. high (3,4), and again tested whether there was a significant change: 
+
+* No significant change in the control group: $\chi^2$`r apa.fc` 
+* No significant change in the treatment group: $\chi^2$ `r apa.ft`
+
+\newpage
+
+## Change of MPSS: Chronification of pain from T0 to T3
+
+*Descriptive statistics for MPSS*
+```{r, fig.width=4.5, fig.height=4}
+as.data.frame(mpss_prop)
+
+plot_mpss
+```
+
+**Change across time**
+
+```{r}
+source("./06_wilcox_tests.R")
+
+#baseline levels
+t0 <- wmpss0
+apa.t0 <- paste("W = ", t0[1], ", p = ", t0[2], " , difference in location = ", t0[3],sep="")
+
+#change over time
+tc03 <- wmpss_c03
+apa.tc03 <- paste("V = ", tc03[1], ", p = ", tc03[2], " , pseudomedian = ", tc03[3],sep="")
+
+tt03 <- wmpss_t03
+apa.tt03 <- paste("V = ", tt03[1], ", p = ", tt03[2], " , pseudomedian = ", tt03[3],sep="")
+```
+
+* no significant baseline difference: `r apa.t0`
+* no significant change in the control group: `r apa.tc03`, Effect size proportions:`r round(prop.table(xtabs(~mpss_stage, dc_diff)),2)`
+* no significant change in the treatment group: `r apa.tt03`. Effect size proportions: `r round(prop.table(xtabs(~mpss_stage, dt_diff)),2)`
+
+\newpage
+
+# Psychological Health: Depression, Anxiety and Hypochondria
+
+Depression, anxiety and hypochondria were all normally distributed.
+
+```{r}
+ggplot(dp, aes(x=hads_depression, fill=Group))+  geom_histogram(binwidth=3, position="dodge")+ scale_fill_manual(values=groupcol)
+
+ggplot(d, aes(x=hads_anxiety, fill=group))+  geom_histogram(binwidth=3, position="dodge")+ scale_fill_manual(values=groupcol)
+
+ggplot(d, aes(x=wi_hypochondria, fill=group))+  geom_histogram(binwidth=2, position="dodge")+ scale_fill_manual(values=groupcol)
+
+```
+
+## Changes in psychological health across time points
+
+*Descriptive statistics of anxiety*
+
+```{r}
+as.data.frame(desc_anx)
+```
+
+*Descriptive statistics of depression*
+
+```{r}
+as.data.frame(desc_dep)
+```
+
+*Descriptive statistics of hypochondria*
+
+```{r}
+as.data.frame(desc_hyp)
+```
+
+
+```{r, fig.width=7, fig.asp=1, fig.cap = "Levels of (A) anxiety (B) depression, and (C) hypochondria at each time point per group"}
+plot_psy
+```
+
+\newpage
+
+### Results for depression
+
+```{r}
+#baseline level t-test
+t0 <- t.test(hads_depression~group, data = d0, var.equal=T); #t-test
+apa.t0 <- apa(t0, format="rmarkdown")
+
+#perform ANOVA
+a_depression <- ezANOVA(data=d, dv=hads_depression, wid = subid, within=time, between=group,  type=3, detailed=T)
+a <- ezANOVA(data=d, dv=hads_anxiety, wid = subid, within=time, between=group,  type=3, detailed=T) #error for hads_depression, replace with anxiety and fill in correct numbers in word
+a$ANOVA[,"peta"] <- c(peta(1), peta(2), peta(3), peta(4)) #add partial eta squared
+apa.a<- apa(a, format= "rmarkdown") #"rmarkdown" for word document
+
+ #perform post-hoc tests for interaction
+t <- t.test(hads_depression_diff ~ group, var.equal=T, data = subset(diffs, diff == "T2-T0"))
+apa.t20  <- apa(t, format="rmarkdown")
+t <- t.test(hads_depression_diff ~ group, var.equal=T, data = subset(diffs, diff == "T3-T2"))
+apa.t32  <- apa(t, format="rmarkdown")
+
+# changes in each group separately
+data = subset(diffs, group =="control" & diff=="T2-T0"); tc02 <- apa(t.test(data$hads_depression_diff,mu=0, var.equal=T))
+data = subset(diffs, group =="treatment" & diff=="T2-T0"); tt02 <- apa(t.test(data$hads_depression_diff,mu=0, var.equal=T))
+data = subset(diffs, group =="control" & diff=="T3-T2"); tc23 <- apa(t.test(data$hads_depression_diff,mu=0, var.equal=T))
+data = subset(diffs, group =="treatment" & diff=="T3-T2"); tt23 <- apa(t.test(data$hads_depression_diff,mu=0, var.equal=T))
+```
+
+* Error in ANOVA depression that I could not solve, therefore use numbers from this table to replace the numbers in the results below: 
+```{r}
+a_depression[1]
+```
+
+
+* Depression: no baseline difference between groups `r apa.t0`
+* ANOVA depresssion group by time 
+    - no significant effect of group (`r paste(apa.a[2,2])`) 
+    - no significant effect of time (`r paste(apa.a[3,2])`)
+    - no significant interaction of group with time (`r paste(apa.a[4,2])`)
+
+No post-hoc tests needed - but in case you need the details: 
+
+* Posthoc test comparing change scores between groups (corrected $\alpha$ = 0.025)
+    - T0-T2 change not different between groups (`r apa.t20`)
+    - T2-T3 change not different between groups (`r apa.t32`)
+* Posthoc tests on each change in each group: (corrected $\alpha$ = 0.0125)
+    - Change T0-T2 is not significant in the control group: (`r tc02`)
+    - Change T0-T2 is not significant in the treatment group: (`r tt02`)
+    - Change T2-T3 is not significant in the control group: (`r tc23`)
+    - Change T2-T3 is not significant in the treatment group: (`r tt23`)
+
+### Results for anxiety
+
+```{r}
+#baseline level t-test
+t0 <- t.test(hads_anxiety~group, data = d0, var.equal=T); #t-test
+apa.t0 <- apa(t0, format="rmarkdown")
+
+#perform ANOVA
+a <- ezANOVA(data=d, dv=hads_anxiety, wid = subid, within=time, between=group,  type=3, detailed=T)
+a$ANOVA[,"peta"] <- c(peta(1), peta(2), peta(3), peta(4)) #add partial eta squared
+apa.a<- apa(a, format= "rmarkdown") #"rmarkdown" for word document
+
+#perform post-hoc tests for interaction
+t <- t.test(hads_anxiety_diff ~ group, var.equal=T, data = subset(diffs, diff == "T2-T0"))
+apa.t20  <- apa(t, format="rmarkdown")
+t <- t.test(hads_anxiety_diff ~ group, var.equal=T, data = subset(diffs, diff == "T3-T2"))
+apa.t32  <- apa(t, format="rmarkdown")
+
+# changes in each group separately
+data = subset(diffs, group =="control" & diff=="T2-T0"); tc02 <- apa(t.test(data$hads_anxiety_diff,mu=0, var.equal=T))
+data = subset(diffs, group =="treatment" & diff=="T2-T0"); tt02 <- apa(t.test(data$hads_anxiety_diff,mu=0, var.equal=T))
+data = subset(diffs, group =="control" & diff=="T3-T2"); tc23 <- apa(t.test(data$hads_anxiety_diff,mu=0, var.equal=T))
+data = subset(diffs, group =="treatment" & diff=="T3-T2"); tt23 <- apa(t.test(data$hads_anxiety_diff,mu=0, var.equal=T))
+```
+
+* No anxiety baseline difference between groups `r apa.t0`
+* ANOVA anxiety group by time 
+    - no significant effect of group (`r paste(apa.a[2,2])`) 
+    - no significant effect of time (`r paste(apa.a[3,2])`)
+    - no significant interaction of group with time (`r paste(apa.a[4,2])`)
+
+No post-hoc tests needed - but in case you need the details: 
+
+* Posthoc test comparing change scores between groups (corrected $\alpha$ = 0.025)
+    - T0-T2 change not different between groups (`r apa.t20`)
+    - T2-T3 change not different between groups (`r apa.t32`)
+* Posthoc tests on each change in each group: (corrected $\alpha$ = 0.0125)
+    - Change T0-T2 is not significant in the control group: (`r tc02`)
+    - Change T0-T2 is not significant in the treatment group: (`r tt02`)
+    - Change T2-T3 is not significant in the control group: (`r tc23`)
+    - Change T2-T3 is not significant in the treatment group: (`r tt23`)
+
+
+### Results for hypochondria
+
+```{r}
+#baseline level t-test
+t0 <- t.test(wi_hypochondria~group, data = d0, var.equal=T); #t-test
+apa.t0 <- apa(t0, format="rmarkdown")
+
+#perform ANOVA
+a <- ezANOVA(data=d, dv=wi_hypochondria, wid = subid, within=time, between=group,  type=3, detailed=T)
+a$ANOVA[,"peta"] <- c(peta(1), peta(2), peta(3), peta(4)) #add partial eta squared
+apa.a<- apa(a, format= "rmarkdown"); #"rmarkdown" for word document
+
+#perform post-hoc tests for interaction
+t <- t.test(wi_hypochondria_diff ~ group, var.equal=T, data = subset(diffs, diff == "T2-T0"))
+apa.t20  <- apa(t, format="rmarkdown")
+t <- t.test(wi_hypochondria_diff ~ group, var.equal=T, data = subset(diffs, diff == "T3-T2"))
+apa.t32  <- apa(t, format="rmarkdown")
+
+# changes in each group separately
+data = subset(diffs, group =="control" & diff=="T2-T0"); tc02 <- apa(t.test(data$wi_hypochondria_diff,mu=0, var.equal=T))
+data = subset(diffs, group =="treatment" & diff=="T2-T0"); tt02 <- apa(t.test(data$wi_hypochondria_diff,mu=0, var.equal=T))
+data = subset(diffs, group =="control" & diff=="T3-T2"); tc23 <- apa(t.test(data$wi_hypochondria_diff,mu=0, var.equal=T))
+data = subset(diffs, group =="treatment" & diff=="T3-T2"); tt23 <- apa(t.test(data$wi_hypochondria_diff,mu=0, var.equal=T))
+```
+
+* No hypochondria baseline difference between groups `r apa.t0`
+* ANOVA hypochondria group by time 
+    - no significant effect of group (`r paste(apa.a[2,2])`) 
+    - no significant effect of time (`r paste(apa.a[3,2])`)
+    - no significant interaction of group with time (`r paste(apa.a[4,2])`)
+
+No post-hoc tests needed - but in case you need the details: 
+
+* Posthoc test comparing change scores between groups (corrected $\alpha$ = 0.025)
+    - T0-T2 change not different between groups (`r apa.t20`)
+    - T2-T3 change not different between groups (`r apa.t32`)
+* Posthoc tests on each change in each group: (corrected $\alpha$ = 0.0125)
+    - Change T0-T2 is not significant in the control group: (`r tc02`)
+    - Change T0-T2 is not significant in the treatment group: (`r tt02`)
+    - Change T2-T3 is not significant in the control group: (`r tc23`)
+    - Change T2-T3 is not significant in the treatment group: (`r tt23`)
+
+\newpage
+
+# Correlations of psychological health with Life Quality
+
+Life quality is not a continuous variable, instead its values go from 0 to 100 in 9 steps of 12.5 (see histogram above in section life quality). Therefore, all correlations are calculated as spearman rank correlations.
+
+## Overview of all correlations across all time points and both groups
+
+For Depression and VAS pain intensity, the overall correlations across all time points and both groups are:
+
+```{r}
+cors <- corr.test(d[,c("lq_overall", "hads_depression","vas_pain_intensity", "soms_n", "soms_intensity")],  method="spearman")
+#cors
+
+r_spearman <- round(cors$r,2)
+p_spearman <- round(cors$p,3)
+
+#by time - uncorrected p-values
+r_lq_dep <- d %>%
+  group_by(time)%>%
+  summarise(r= round(unlist(corr.test(cbind(lq_overall, hads_depression), method="spearman"))$r2,2),
+            p= round(unlist(corr.test(cbind(lq_overall, hads_depression),method="spearman"))$p2,3))
+r_lq_vas <- d %>%
+  group_by(time)%>%
+  summarise(r= round(unlist(corr.test(cbind(lq_overall, vas_pain_intensity), method="spearman"))$r2, 2),
+            p= round(unlist(corr.test(cbind(lq_overall, vas_pain_intensity), method="spearman"))$p2,3))
+r_lq_somsn <- d %>%
+  group_by(time)%>%
+  summarise(r= round(unlist(corr.test(cbind(lq_overall, soms_n), method="spearman"))$r2, 2),
+            p= round(unlist(corr.test(cbind(lq_overall, soms_n), method="spearman"))$p2,3))
+r_lq_somsi <- d %>%
+  group_by(time)%>%
+  summarise(r= round(unlist(corr.test(cbind(lq_overall, soms_intensity), method="spearman"))$r2, 2),
+            p= round(unlist(corr.test(cbind(lq_overall, soms_intensity), method="spearman"))$p2,3))
+r_dep_vas <- d %>%
+  group_by(time)%>%
+  summarise(r= round(unlist(corr.test(cbind(hads_depression, vas_pain_intensity), method="spearman"))$r2, 2),
+            p= round(unlist(corr.test(cbind(hads_depression, vas_pain_intensity), method="spearman"))$p2,3))
+```
+
+## Correlation life quality and depression by time
+
+Corrected for multiple correlations, LQ is negatively correlated with depression (r=`r r_spearman[2]`, p <.001). The correlation with depression is similarly negative at all time points, and this pattern does not vary systematically between the two groups. Correlations at the three time points remain significant after Bonferroni correction ($\alpha$ = 0.05/3 = 0.0167). Sample sizes are too small to compare correlations between groups.
+
+
+*Correlation table for life quality with depression by time point*
+
+```{r, fig.width=7, fig.asp=0.5}
+as.data.frame(r_lq_dep)
+
+corr_dlq_w
+```
+
+## Correlation of life quality with pain intensity
+
+Across all time points combined, pain intensity is not significantly correlated with life quality ((r=`r r_spearman[3]`, p=`r p_spearman[3]`)).The data does not show a systematic correlation of pain intensity with life quality. Although there is a correlation of `r r_lq_vas$r[3]` at T3, it is not significant after Bonferroni correction, and there is no apriori reasons to expect such a correlation only half a year after the treatment (T3), and not before (T0) or just after (T0). Overall, there is thus no significant correlation of life quality with pain intensity.
+
+*Correlation table for life quality with pain intensity by time point*
+
+```{r,fig.width=7, fig.asp=0.5}
+as.data.frame(r_lq_vas)
+
+corr_vaslq_w
+```
+
+
+\newpage
+
+## Correlation life quality and number of somatoform symptoms (SOMS)
+
+Corrected for multiple correlations, LQ is negatively correlated with the number of symptoms  (r=`r r_spearman[16]`, p <.001). In other words, life quality decreases if patients have more symptoms. This correlation is similarly negative at all time points, and does not vary between the two groups. Correlations at the three time points remain significant after Bonferroni correction ($\alpha$ = 0.05/3 = 0.0167).
+
+*Correlation table for life quality with number of symptoms by time point*
+
+```{r, fig.width=7, fig.asp=0.5}
+as.data.frame(r_lq_somsn)
+
+corr_somsnlq_w
+```
+
+## Correlation life quality and SOMS symptom intensity
+
+Corrected for multiple correlations, LQ is also negatively correlated with symptom intensity  (r=`r r_spearman[21]`, p<.001), thus decreases as symptoms become more intense . This correlation is similarly negative at all time points, and does not vary between the two groups. Correlations at the three time points remain significant after Bonferroni correction ($\alpha$ = 0.05/3 = 0.0167).
+
+
+*Correlation table for life quality with number of symptoms by time point*
+
+```{r, fig.width=7, fig.asp=0.5}
+as.data.frame(r_lq_somsi)
+
+corr_somsilq_w
+```
+
+\newpage
+
+
+## Correlation depression and pain intensity (VAS)
+
+Depression and pain intensity correlate positively, that is, increase together (r=`r r_spearman[12]`, p= `r p_spearman[12]`). However, the correlation is rather weak, and only significant without correction for multiple comparisons (uncorrected p=`r p_spearman[8]`). Looking at each time point separately, the correlation is also not significant, and is not visible at T2. Visually, the correlation does not seem different between the two groups at any time point. 
+
+
+*Correlation table for life quality with number of symptoms by time point*
+
+```{r, fig.width=7, fig.asp=0.5}
+as.data.frame(r_dep_vas)
+
+corr_dp_w
+```
+
+# Therapy expectations and evaluation
+
+Participants reported their therapy expectations before they were assigned to the control or treatment group, so both groups provided ratings for medical and psychological therapy. After having received therapy, both groups again evaluated the perceived success of the medical therapy, but only the treatment group evaluated the psychological therapy.
+
+Values are coded as follows:
+
+* Expectations at T0
+    - 1 = no expectations
+    - 5 = high expectations
+* Evaluation at T3
+    - 1 = no success
+    - 5 = very good success
+(Achtung: Ich hab die Kodierung der Evaluation aus deiner Excel Auswertungstabelle umgedreht, damit die Evaluation mit der Erwartung vergleichbar wird, d.h. Excelwerte 1/2/3/4/5 ist in der Statistik und den Graphiken 5/4/3/2/1.)
+
+For all subjective ratings related to therapy, the corrected threshold for multiple comparisons is $\alpha$ /2 = 0.025. 
+
+
+```{r, fig.height=9.5, fig.width=5.5}
+plot_exp_eval
+```
+
+*Descriptive statistics for expectations and evaluation of medical therapy*
+
+```{r}
+as.data.frame(quant_medt)
+```
+
+*Descriptive statistics for expectations and evaluation of psychological therapy*
+
+```{r}
+as.data.frame(quant_psyt)
+```
+
+**Results**
+
+```{r}
+#baseline level comparison (Mann-Whitney test, also called 2 sample Wilcoxon Rank Sum test)
+t0m <- w0m
+apa.t0m <- paste("W = ", t0m[1], ", p = ", t0m[2], " , difference in location = ", t0m[3],sep="")
+
+t0p <- w0p
+apa.t0p <- paste("W = ", t0p[1], ", p = ", t0p[2]," , difference in location = ", t0p[3],sep="")
+
+#wilcox test comparing the change score between groups: 
+tc03 <- w_c03m
+apa.tc03 <- paste("V = ", tc03[1], ", p = ", tc03[2], " , pseudomedian = ", tc03[3],sep="")
+
+tt03 <-w_t03m
+apa.tt03 <- paste("V = ", tt03[1], ", p = ", tt03[2], " , pseudomedian = ", tt03[3],sep="")
+```
+
+There was no baseline difference between groups in expectations about medical therapy (`r apa.t0m`) or psychological therapy (`r apa.t0p`). 
+
+**Comparisons of expectations at T0 and evaluation at T3**
+
+Within the control and the treatment group, expectations about medical therapy at T0 were similar to evaluations of medical therapy at T3 (no significant change). 
+
+* control: `r apa.tc03`, Effect size proportions:`r round(prop.table(xtabs(~expectation.success_medt, dc_diff)),2)`
+* treatment: `r apa.tt03`, Effect size proportions:`r round(prop.table(xtabs(~expectation.success_medt, dt_diff)),2)`
+
+```{r}
+tt03 <- w_t03p
+apa.tt03 <- paste("V = ", tt03[1], ", p = ", tt03[2], " , pseudomedian = ", tt03[3],sep="")
+```
+
+However, evaluations of psychological therapy at T3 were higher than expectations about psychological therapy at T0 in the treatment group (`r apa.tt03`). That is, the psychological treatment was subjectively experienced better than the patients expected at the beginning. Effect size proportions:`r round(prop.table(xtabs(~expectation.success_psyt, dt_diff)),2)`
+
+\newpage
+
+# Psychotherapy motivation
+
+Psychotherapy motivation was normally distributed.
+
+*Per Group and Time*
+
+```{r}
+ggplot(dp02, aes(x=pt_motivation, fill=Group))+geom_histogram(binwidth=15, position="dodge")+
+  facet_grid(Group~Time)+ scale_fill_manual(values=groupcol)
+```
+
+*Difference T0-T2*
+
+```{r}
+ggplot(diffs02, aes(x=pt_motivation, fill=group))+geom_histogram(binwidth=10, position="dodge")+
+  scale_fill_manual(values=groupcol)#+scale_x_continuous(breaks=seq(-30,50,5)) 
+
+```
+
+**Descriptive statistics for psychotherapy motivation**
+
+```{r, fig.height=4, fig.width=6}
+as.data.frame(desc_pt_mot)
+plot_ptmot
+```
+
+**Treatment effects**
+
+```{r}
+#baseline level t-test
+t0 <- t.test(pt_motivation~group, data = d0, var.equal=T); #t-test
+apa.t0 <- apa(t0, format="rmarkdown")
+
+#perform ANOVA (data: dptm is filtered for subjects with NAs)
+a <- ezANOVA(data=dptm, dv=pt_motivation, wid = subid, within=time, between=group,  type=3, detailed=T)
+a$ANOVA[,"peta"] <- c(peta(1), peta(2), peta(3), peta(4)) #add partial eta squared
+apa.a<- apa(a, format= "rmarkdown"); #"rmarkdown" for word document
+
+#perform post-hoc tests for interaction
+t <- t.test(pt_motivation ~ group, var.equal=T, data = diffs02)
+apa.t20  <- apa(t, format="rmarkdown")
+
+# changes in each group separately
+data = subset(diffs02, group =="control"); tc02 <- apa(t.test(data$pt_motivation,mu=0, var.equal=T))
+data = subset(diffs02, group =="treatment"); tt02 <- apa(t.test(data$pt_motivation,mu=0, var.equal=T))
+```
+
+* No baseline difference in psychotherapy motivation between groups `r apa.t0`
+* ANOVA psychotherapy motivation group by time: (corrected $\alpha$ for interaction = 0.025)
+    - no significant effect of group (`r paste(apa.a[2,2])`) - But it's not far from significance, the figure shows that motivation slightly increased in the treatment group. Since they fill out the questionnaire after the psychological treatment, this could mean that the psychological treatment made them more motivated for further psychotherapy, which seems plausible.
+    - no significant effect of time (`r paste(apa.a[3,2])`)
+    - no significant interaction of group with time (`r paste(apa.a[4,2])`): The effect size $\eta^2 p$ =.09 is relatively large. With a larger sample, this could thus be significant. It means that psychological therapy increased motivation from T0 to T2 in the treatment group. 
+
+No post-hoc tests needed - but in case you need the details: 
+
+* Posthoc tests on the change in each group: (corrected $\alpha$ = 0.025)
+    - Change T0-T2 is not significant in the control group: (`r tc02`): no real change. 
+    - Change T0-T2 is not significant in the treatment group: (`r tt02`): Motivation increased, but not significantly. The effect size is small to medium. 
+
+
+\newpage
+
+# Change in sickness-related behaviours from T0 to T3
+
+Specialist doctor visits and lost days are not normally distributed, therefore I calculated quantiles instead of mean and SD. Because we assessed two behaviours, we applied a corrected threshold of $\alpha$ = 0.025. 
+
+```{r}
+as.data.frame(change_sickness_behav_desc)
+```
+
+
+*Specialist doctor visits*
+
+```{r}
+as.data.frame(quant_visits)
+```
+
+*Lost days*
+
+```{r}
+as.data.frame(quant_lostwd)
+```
+
+```{r, fig.height=7, fig.width=4}
+plot_sickbeh
+```
+
+**Change in specialist visits from T0 to T3**
+
+```{r}
+#baseline level comparison (Mann-Whitney test, also called 2 sample Wilcoxon Rank Sum test)
+t0 <-w_s0
+apa.t0 <- paste("W = ", t0[1], ", p = ", t0[2], " , difference in location = ", t0[3],sep="")
+
+#wilcox test comparing the change score between groups: 
+tg <- w_gs
+apa.tg <- paste("W = ", tg[1], ", p = ", tg[2], " , difference in location = ", tg[3],sep="")
+```
+
+* There was no baseline differences in specialist visits (`r apa.t0`). 
+* The Mann-Whithney test comparing the change score between groups yielded a significant effect of group `r apa.tg`,  suggesting that the number of specialist visits decreased more strongly in the treatment than the control group.
+
+
+**Change in lost days from T0 to T3**
+
+```{r}
+#baseline level comparison (Mann-Whitney test, also called 2 sample Wilcoxon Rank Sum test)
+t0 <- w_l0
+apa.t0 <- paste("W = ", t0[1], ", p = ", t0[2], " , difference in location = ", t0[3],sep="")
+
+#wilcox test comparing the change score between groups: 
+tg <- w_gl
+apa.tg <- paste("W = ", tg[1], ", p = ", tg[2], " , difference in location = ", tg[3],sep="")
+```
+
+* There was no baseline differences in lost days (`r apa.t0`). 
+* The Mann-Whithney test comparing the change score between groups yielded no significant effect of group `r apa.tg`, i.e. the number of lost days did not change differently in the two groups. However, without corrections for multiple comparisons, the difference would have been significant, suggesting a decrease in the number of lost days in the treatment group. A test with a larger sample would be needed to see if this effect of psychological treatment on number of lost days is robust.  
+
+\newpage
+
+# ICD10 diagnoses
+
+## Detailed figure: individual disorders
+
+```{r, fig.height=10, fig.width = 8.5}
+icd_diagnoses
+
+```
+
+## Disorders Grouped by category
+
+```{r, fig.height=4, fig.width = 7}
+
+plot_grid(plot.cataxis1all, plot.cataxis1, rel_widths=c(1.1,1))
+
+plot_grid(plot.cataxis2all, plot.cataxis2, rel_widths=c(0.9,1))
+
+```
+
+## Comparisons between groups at T0
+
+__Axis 1 disorders: depression, anxiety, trauma and stress-related disorders__
+
+```{r, baseline comparisons axis 1}
+#calculate number of patients who have depression, anxiety or trauma/stress in each group (not the first, but any comorbid disorder)
+depanxtrauma <- icd %>%
+  filter(axis1 %in% c("Depressive episode"  , "Recurrent depressive\ndisorder", "Phobic anxiety disorders", "Panic disorder","PTSD","Adjustment disorder", "Dysthymia")) %>% 
+  #mutate(depanxtrauma =factor(ifelse(axis1=="None", 0, 1), levels=c(0,1), labels=c("No", "Yes"))) %>% 
+  select(Group, axis1, subid) %>% 
+  mutate(group = factor(Group, labels = c("control", "treatment")))
+         
+#number of axis 1 disorder per group
+axis1n <- as.data.frame(xtabs(~+group, data=depanxtrauma)) 
+
+#proportion test (chi-square)
+pa1 <- round(as.numeric(t(unlist(prop.test(x=axis1n$Freq, n=c(21,17),correct =TRUE)))[1:3]), digits=3) 
+#correct = T: Yates correction because of small sample
+apa.pa1 = paste("(", pa1[2], ") = ", pa1[1],", p = ", pa1[3], sep="")
+axis1n
+```
+
+In the control group (n=21), there were 19 diagnoses of depression, anxiety or trauma and stress-related disorders (this does not correspond to 19 patients, as some had more than one disorder). In the treatment group (n=17), there were 11 such diagnoses. These numbers of diagnoses at baseline did not significantly differ between groups (($\chi^2$`r apa.pa1`).
+
+__Personality disorders__
+
+```{r, compare personality disorders at baseline}
+
+# propotion of personality disorder, entire sample and per group
+as.data.frame(xtabs(~personality_disorder, data=axis2))
+prop_pd <- as.data.frame(xtabs(~personality_disorder+group, data=axis2lq)) 
+ngroup <- prop_pd %>% group_by(group) %>% mutate(n = sum(Freq)) %>% select(group,n) %>% ungroup()
+
+prop_pd$Percent <- round(prop_pd$Freq/ngroup$n,2)
+
+successes <- subset(prop_pd, personality_disorder=="Yes")$Freq #number of patients with personality disorder
+ngroup <- prop_pd %>% group_by(group) %>% mutate(n = sum(Freq)) %>% select(group,n) #n of control/treatment group
+
+#proportion test (chi-square)
+pf0 <- round(as.numeric(t(unlist(prop.test(x=successes, n=c(ngroup$n[1], ngroup$n[3]),correct =TRUE)))[1:3]), digits=3) 
+#correct = T: Yates correction because of small sample
+apa.pf0 = paste("(", pf0[2], ") = ", pf0[1],", p = ", pf0[3], sep="")
+prop_pd
+```
+
+In total, 13 out of the 38 patients had a personality disorder diagnosis or an accentuation of personality traits. 6 patients in the control group had such a diagnosis (29%), and 7 in the treatment group (41%). There was no baseline difference in the number of patients per group with a personality disorder (($\chi^2$`r apa.pf0`).
+
+<!-- # Descriptive Statistics: Comparison between BEFORE and AFTER applying LOCF replacement (or per protocol filtering) -->
+
+<!-- ## Variables with 3 measurement time points -->
+
+<!-- Descriptive statistics across all time points including all existing data points BEFORE replacing any values (All "NA" are missing values): -->
+<!-- ```{r} -->
+<!-- d_all023 <- d_all %>% -->
+<!--   #select variables measured at all 3 time points -->
+<!--   select(subid, time, date, group, lq_phys, lq_psych, lq_social, lq_envir, lq_overall, cpsq, vas_pain_intensity, -->
+<!--        soms_n, soms_intensity, hads_anxiety, hads_depression, wi_hypochondria, month, season) -->
+<!-- print(summary(d_all023)) -->
+<!-- ``` -->
+<!-- \newpage -->
+
+<!-- Descriptive statistics across all time points AFTER excluding incomplete cases (PP) or replacing values (LOCF): -->
+<!-- ```{r} -->
+<!-- d023 <- d_all%>% -->
+<!--   select(subid, time, date, group, lq_phys, lq_psych, lq_social, lq_envir, lq_overall, cpsq, vas_pain_intensity, -->
+<!--          soms_n, soms_intensity, hads_anxiety, hads_depression, wi_hypochondria, month, season) -->
+<!-- print(summary(d023)) -->
+<!-- ``` -->
+
+<!-- \newpage -->
+
+<!-- ## Variables with 2 measurement time points -->
+
+<!-- Descriptive statistics across all time points including all existing data points BEFORE replacing any values (All "NA" are missing values): -->
+<!-- ```{r} -->
+<!-- #time point 0 and 3 -->
+<!-- d_all03 <- d_all %>% filter(time!="T2")%>% -->
+<!--   select(subid, time, group,mpss_stage, expectation.success_medt, expectation.success_psyt, specialist_visits, lost_days, occupation, pain_subj_control)%>% -->
+<!--   droplevels() -->
+<!-- #time point 0 and 2 -->
+<!-- d_all02 <- d_all %>%  filter(time!="T3")%>% -->
+<!--   select("subid", "time", "group","pt_motivation")%>% -->
+<!--   droplevels() -->
+
+<!-- print(summary(d_all03)) -->
+<!-- print(summary(d_all02)) -->
+<!-- ``` -->
+<!-- \newpage -->
+<!-- Descriptive statistics across all time points AFTER excluding incomplete cases (PP) or replacing values (LOCF): -->
+<!-- ```{r} -->
+<!-- d03sum <- d03 %>% -->
+<!--   select(subid, time, group,mpss_stage, expectation.success_medt, expectation.success_psyt, specialist_visits, lost_days, occupation, pain_subj_control) -->
+<!-- d02sum <- d02 %>% -->
+<!--   select(subid, time, group,pt_motivation) -->
+<!-- print(summary(d03sum)) -->
+<!-- print(summary(d02sum)) -->
+<!-- ``` -->
+<!-- \newpage -->
+
+<!-- ## Variables only assessed at T0 -->
+<!-- ```{r} -->
+<!-- d_all0 <- d_all %>% filter(time=="T0")%>% -->
+<!--   select(subid, time, date, group, age, gender, education, occupation, marital_status, pain_family_member, -->
+<!--           pain_duration_years, pain_subj_control, sick_leave, retired)%>% -->
+<!--   droplevels() -->
+<!-- summary(d_all0) -->
+<!-- ``` -->
