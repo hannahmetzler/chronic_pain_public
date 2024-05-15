@@ -3,7 +3,7 @@
 library(dplyr); library(ggplot2); library(cowplot); library(tidyr)
 
 #read and prepare data ####
-icd0 <- read.csv2('../data/icd10.csv', header=T) 
+icd0 <- read.csv2('data/icd10.csv', header=T) 
 
 
 icd1 = icd0 %>%
@@ -166,7 +166,7 @@ icd_diagnoses <- ggdraw()+
                   x=c(0, 0, 0.5), 
                   y=c(1, 0.35, 0.35), 
                   size = 18) 
-pdf('../figures/icd_diagnoses.pdf', height=10, width = 8.5); icd_diagnoses; dev.off()
+pdf('figures/icd_diagnoses.pdf', height=10, width = 8.5); icd_diagnoses; dev.off()
 
 
 
@@ -209,7 +209,7 @@ pdf('../figures/icd_diagnoses.pdf', height=10, width = 8.5); icd_diagnoses; dev.
 # patients per intermediate category of disorder ####
 
 #read and prepare data 
-cat0 <- read.csv2('../data/icd10_largecategories.csv', header=T) 
+cat0 <- read.csv2('data/icd10_largecategories.csv', header=T) 
 
 cat1 = cat0 %>%
   rename(Group = group)%>%
@@ -254,7 +254,7 @@ plot.cataxis1
 
 # #put axis 1 plots together
 # graphics.off()
-# pdf('../figures/icd10_axis1_categories.pdf', height=4, width=8)
+# pdf('figures/icd10_axis1_categories.pdf', height=4, width=8)
 # plot_grid(plot.cataxis1all, plot.cataxis1, rel_widths=c(1.3,1))
 # dev.off()
 
@@ -293,7 +293,7 @@ plot.cataxis2
 
 # #no labels for group plot
 # graphics.off()
-# pdf('../figures/icd10_axis2_categories.pdf', height=4, width=7.5)
+# pdf('figures/icd10_axis2_categories.pdf', height=4, width=7.5)
 # plot_grid(plot.cataxis2all, plot.cataxis2, rel_widths=c(1,1.1))
 # dev.off()
 

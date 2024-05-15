@@ -1,19 +1,24 @@
 ---
 title: "Analysis Chronic Pain Study - Julia Sonnleitner"
-date: August 17, 2019
+date: "August 17, 2019, Updated on May 15 2024"
 output:
-  word_document: 
-    toc: true
-    toc_depth: 2
-    fig_caption: true
-    df_print: kable
   pdf_document:
     toc: true
     toc_depth: 2
     fig_caption: true
     df_print: kable
+  html_document:
+    toc: true
+    toc_depth: '2'
+    df_print: paged
   number_sections: true
+  word_document:
+    toc: true
+    toc_depth: 2
+    fig_caption: true
+    df_print: kable
 url_colour: blue
+cache: TRUE
 ---
 
 
@@ -24,17 +29,19 @@ knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
 #knitr::opts_knit$set(root.dir = '/Users/Hannah/Documents/Analyse_Julia_Sonnleitner/pain/scripts' ) #setting all root directories relative to this one
 Sys.setlocale("LC_ALL", 'en_US.UTF-8')
 
-#when working inside R (not printing to PDF)
-#setwd('/scripts')
-
 #Packages
 library(RColorBrewer)
-library(dplyr) #for basic data handling
-library(ggplot2) #for figures
+library(tidyverse) #packages: dplyr, ggplot2, tidyr,...
+library(cowplot) # for multiple figures
 library(apa) #for writing results of tests into text format (apa Style)
 library(ez) #for ANOVAS
 library(car) #for LeveneTest
 library(psych)
+library(scales)
+library(ggpubr)
+library(gridExtra) #for multiple figures
+library(pastecs) #for stat.desc
+library(gmodels)#for high and low ci thresholds
 ```
 
 \newpage
@@ -71,15 +78,15 @@ analysis = "LOCF"
 <!-- Run the data preparation, descriptives and figures script with the chosen type of missing cases exclusion or replacement: -->
 
 ```{r, results = "hide"}
-source("./01_prepare_data.R")
-source("./02_descriptives.R")
-source("./06_wilcox_tests.R")
-source("07icd10.R")
-# 
+source("scripts/01_prepare_data.R")
+source("scripts/02_descriptives.R")
+source("scripts/06_wilcox_tests.R") #error in this script, check
+source("scripts/07icd10.R")
+
 # #run figure script:
-# #source("scripts/03_figures.R")
+# source("scripts/03_figures.R")
 # #if script was already run, load saved figures instead:
-load("../figures/pain_plots.RData")
+load("./figures/pain_plots.RData")
 ```
 
 \newpage
@@ -543,7 +550,7 @@ __Subjective control of pain__
 plot_pain_control
 
 as.data.frame(tp[["pain_subj_control"]])
- write.csv2(x=as.data.frame(tp[["pain_subj_control"]]), file = "../output/pain_control.csv", row.names=F)
+ write.csv2(x=as.data.frame(tp[["pain_subj_control"]]), file = "output/pain_control.csv", row.names=F)
  
 contingency <- xtabs(~pain_subj_control+group, data=d0)
 chi <- round(as.numeric(t(unlist(chisq.test(contingency, correct=T)))[1:3]), digits=3)
@@ -713,7 +720,7 @@ data = subset(diffs, group =="treatment" & diff=="T3-T2"); tt23 <- apa(t.test(da
 
 **Results**
 
-Baseline levels of life quality were higher in the control than the treatment group (`r apa.t0`). The ANOVA on life quality scores revealed an effect of group (`r paste(apa.a[2,2])`) , no effect of time (`r paste(apa.a[3,2])`), but an interaction of group with time (`r paste(apa.a[4,2])`). A post-hoc t-tests indicated a decrease of life quality from T0 to T2 in the control group, as opposed to an increase in the treatment group (`r apa.t20`). Due to the baseline difference with much higher life quality in the control group, this cannot be interpreted only as an effect of the psychological treatment. Seperate t-tests on the change T2-T0 (corrected $\alpha$ = 0.0125) in each group show a larger decreasing effect in the control group  (`r tc02`), in comparison to the increasing effect in the treatment group (`r tt02`). 
+Baseline levels of life quality were higher in the control than the treatment group (`r apa.t0`). The ANOVA on life quality scores revealed an effect of group (`r paste(apa.a$text[2])`) , no effect of time (`r paste(apa.a$text[3])`), but an interaction of group with time (`r paste(apa.a$text[4])`). A post-hoc t-tests indicated a decrease of life quality from T0 to T2 in the control group, as opposed to an increase in the treatment group (`r apa.t20`). Due to the baseline difference with much higher life quality in the control group, this cannot be interpreted only as an effect of the psychological treatment. Seperate t-tests on the change T2-T0 (corrected $\alpha$ = 0.0125) in each group show a larger decreasing effect in the control group  (`r tc02`), in comparison to the increasing effect in the treatment group (`r tt02`). 
 
 From T2 to T3, life quality of the control group increased again, and remained stable in the treatment group. Yet, this change was not significantly different between groups (`r apa.t32`, against corrected  $\alpha$ = 0.025). Here, seperate tests in each group (corrected $\alpha$ = 0.0125) suggest an increse in the control group (`r tc23`), but no change in the treatment group (`r tt23`) Before concluding that the treatment effect was stable in the treatment group, one needs to consider the over-estimation due to the LOCF approach.
 
@@ -762,7 +769,7 @@ plot_pd_lq <- ggplot(axis2lq, aes(x=personality_disorder, y=lq_overall, fill=per
   theme(text=element_text(size=s),legend.text=element_text(size=s),
         panel.grid.major = element_blank(), panel.grid.minor = element_blank(),#remove grid lines
         legend.position="none")
-#pdf('../figures/lq_personality_disorders.pdf', height = 3.5, width = 3.5); plot_pd_lq; dev.off()
+#pdf('figures/lq_personality_disorders.pdf', height = 3.5, width = 3.5); plot_pd_lq; dev.off()
 ```
 
 Life quality was considerably lower in people with a personality disorder or accentuation, compared to other patients, but the difference is not significant given the small sample size `r apa.t0`. 
@@ -893,9 +900,9 @@ apa.a<- apa(a, format= "rmarkdown") #"rmarkdown" for word document
 
 * No SOMS symptoms baseline difference between groups `r apa.t0`
 * ANOVA SOMS symptoms group by time 
-    - no significant effect of group (`r paste(apa.a[2,2])`) 
-    - no significant effect of time (`r paste(apa.a[3,2])`)
-    - no significant interaction of group with time (`r paste(apa.a[4,2])`)
+    - no significant effect of group (`r paste(apa.a$text[2])`) 
+    - no significant effect of time (`r paste(apa.a$text[3])`)
+    - no significant interaction of group with time (`r paste(apa.a$text[4])`)
     
     
 \newpage
@@ -934,9 +941,9 @@ apa.a<- apa(a, format= "rmarkdown") #"rmarkdown" for word document
 
 * No SOMS intensity baseline difference between groups `r apa.t0`
 * ANOVA SOMS intensity group by time 
-    - no significant effect of group (`r paste(apa.a[2,2])`) 
-    - no significant effect of time (`r paste(apa.a[3,2])`)
-    - no significant interaction of group with time (`r paste(apa.a[4,2])`)
+    - no significant effect of group (`r paste(apa.a$text[2])`) 
+    - no significant effect of time (`r paste(apa.a$text[3])`)
+    - no significant interaction of group with time (`r paste(apa.a$text[4])`)
 
 \newpage
 
@@ -1014,7 +1021,7 @@ plot_mpss
 **Change across time**
 
 ```{r}
-source("./06_wilcox_tests.R")
+# source("./scripts/06_wilcox_tests.R")
 
 #baseline levels
 t0 <- wmpss0
@@ -1108,9 +1115,9 @@ a_depression[1]
 
 * Depression: no baseline difference between groups `r apa.t0`
 * ANOVA depresssion group by time 
-    - no significant effect of group (`r paste(apa.a[2,2])`) 
-    - no significant effect of time (`r paste(apa.a[3,2])`)
-    - no significant interaction of group with time (`r paste(apa.a[4,2])`)
+    - no significant effect of group (`r paste(apa.a$text[2])`) 
+    - no significant effect of time (`r paste(apa.a$text[3])`)
+    - no significant interaction of group with time (`r paste(apa.a$text[4])`)
 
 No post-hoc tests needed - but in case you need the details: 
 
@@ -1150,9 +1157,9 @@ data = subset(diffs, group =="treatment" & diff=="T3-T2"); tt23 <- apa(t.test(da
 
 * No anxiety baseline difference between groups `r apa.t0`
 * ANOVA anxiety group by time 
-    - no significant effect of group (`r paste(apa.a[2,2])`) 
-    - no significant effect of time (`r paste(apa.a[3,2])`)
-    - no significant interaction of group with time (`r paste(apa.a[4,2])`)
+    - no significant effect of group (`r paste(apa.a$text[2])`) 
+    - no significant effect of time (`r paste(apa.a$text[3])`)
+    - no significant interaction of group with time (`r paste(apa.a$text[4])`)
 
 No post-hoc tests needed - but in case you need the details: 
 
@@ -1193,9 +1200,9 @@ data = subset(diffs, group =="treatment" & diff=="T3-T2"); tt23 <- apa(t.test(da
 
 * No hypochondria baseline difference between groups `r apa.t0`
 * ANOVA hypochondria group by time 
-    - no significant effect of group (`r paste(apa.a[2,2])`) 
-    - no significant effect of time (`r paste(apa.a[3,2])`)
-    - no significant interaction of group with time (`r paste(apa.a[4,2])`)
+    - no significant effect of group (`r paste(apa.a$text[2])`) 
+    - no significant effect of time (`r paste(apa.a$text[3])`)
+    - no significant interaction of group with time (`r paste(apa.a$text[4])`)
 
 No post-hoc tests needed - but in case you need the details: 
 
@@ -1435,9 +1442,9 @@ data = subset(diffs02, group =="treatment"); tt02 <- apa(t.test(data$pt_motivati
 
 * No baseline difference in psychotherapy motivation between groups `r apa.t0`
 * ANOVA psychotherapy motivation group by time: (corrected $\alpha$ for interaction = 0.025)
-    - no significant effect of group (`r paste(apa.a[2,2])`) - But it's not far from significance, the figure shows that motivation slightly increased in the treatment group. Since they fill out the questionnaire after the psychological treatment, this could mean that the psychological treatment made them more motivated for further psychotherapy, which seems plausible.
-    - no significant effect of time (`r paste(apa.a[3,2])`)
-    - no significant interaction of group with time (`r paste(apa.a[4,2])`): The effect size $\eta^2 p$ =.09 is relatively large. With a larger sample, this could thus be significant. It means that psychological therapy increased motivation from T0 to T2 in the treatment group. 
+    - no significant effect of group (`r paste(apa.a$text[2])`) - But it's not far from significance, the figure shows that motivation slightly increased in the treatment group. Since they fill out the questionnaire after the psychological treatment, this could mean that the psychological treatment made them more motivated for further psychotherapy, which seems plausible.
+    - no significant effect of time (`r paste(apa.a$text[3])`)
+    - no significant interaction of group with time (`r paste(apa.a$text[4])`): The effect size $\eta^2 p$ =.09 is relatively large. With a larger sample, this could thus be significant. It means that psychological therapy increased motivation from T0 to T2 in the treatment group. 
 
 No post-hoc tests needed - but in case you need the details: 
 

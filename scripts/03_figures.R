@@ -1,16 +1,16 @@
 # figures 
 
-#load packages and previous scripts
-library(ggplot2)
-library(scales)
-library(RColorBrewer)
-library(ggpubr)
-library(cowplot) #for multiple figures
-library(gridExtra) #for multiple figures
-library(dplyr)
+#load packages and previous scripts (already loaded in analysis_report.Rmd)
+# library(ggplot2)
+# library(scales)
+# library(RColorBrewer)
+# library(ggpubr)
+# library(cowplot) #for multiple figures
+# library(gridExtra) #for multiple figures
+# library(dplyr)
 
 #load data
-source("scripts/01_prepare_data.R") # all paths are relative the the analysis_runner.Rmd RMarkdown file!
+# source("scripts/01_prepare_data.R")
 
 # format variables for Graphs: start with capital letters ####
 dp <- d %>% #dp = data for plots
@@ -503,7 +503,7 @@ prop.season <- dp %>%
 # prop.season <- rbind(as.data.frame(prop.season), empty)
 
 plot_season <- ggplot(prop.season, aes(x = season, y=freq, colour=Group, group=Group)) +
-  geom_line(aes(linetype=Group), size=1)+
+  geom_line(aes(linetype=Group), linewidth=1)+
   geom_point(aes(shape=Group), size=3)+
   facet_grid(~Time)+
   labs(y="Proportion", x="Season")+scale_y_continuous(limits=c(0, 0.55))+
@@ -521,7 +521,7 @@ prop.month <- dp %>%
 
 #plot the proportion as bars
 plot_month <- ggplot(prop.month, aes(x = month, y=freq, colour=Group, group=Group)) +
-  geom_line(aes(linetype=Group), size=1)+
+  geom_line(aes(linetype=Group), linewidth=1)+
   geom_point(aes(shape=Group), size=3)+
   facet_grid(~Time)+
   labs(y="Proportion", ymin=0, x="Month")+scale_y_continuous(limits=c(0, 0.55))+
@@ -649,4 +649,4 @@ plot_sickbeh <- plot_grid(plot_visits, plot_lostdays, labels=c("A", "B"), label_
 pdf('./figures/sickness_behaviour.pdf', height=4, width=8); plot_sickbeh; dev.off()
 
 #save ./figures for use in RMarkdown: 
-save.image("~/Documents/Analyse_Julia_Sonnleitner/pain/figures/pain_plots.RData")
+save.image("figures/pain_plots.RData")

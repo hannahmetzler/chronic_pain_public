@@ -1,9 +1,6 @@
-#load R-libraries
-library(dplyr)
-library(tidyr)
-
-#working directory
-setwd("/Users/Hannah/Documents/Analyse_Julia_Sonnleitner/chronicpain/scripts")
+#load R-libraries (already in analysis_report.Rmd)
+# library(dplyr)
+# library(tidyr)
 
 #choose analysis ####
 
@@ -16,8 +13,8 @@ analysis="LOCF"
 
 #read and format data ###
 
-dt0t1 <- read.csv2('../data/data_pain_t0t1.csv', header=T) #working directoy: scripts folder, therefore: ../
-d_read <- read.csv2('../data/data_pain_t0t2t3.csv', header=T)
+dt0t1 <- read.csv2('data/data_pain_t0t1.csv', header=T)
+d_read <- read.csv2('data/data_pain_t0t2t3.csv', header=T)
 head(d_read)
 
 #format variables
@@ -54,8 +51,8 @@ d_all <- d_read %>%
                                      ifelse(month %in% c("07", "08", "09"), 3,
                                             ifelse(month %in% c("10", "11", "12"), 4, NA)))),
                        levels=c(1:4), labels=c("Jan-Mar", "Apr-Jun", "Jul-Sep", "Oct-Dec")))
-# write.csv2(d_read, file='./../data/data_pain_t0t2t3.csv', row.names=FALSE)
-# save(d_read, file='./../data/data_pain_t0t2t3.RData')
+# write.csv2(d_read, file='./data/data_pain_t0t2t3.csv', row.names=FALSE)
+# save(d_read, file='./data/data_pain_t0t2t3.RData')
 
 
 # #combine similar categories into 1 for marital status and occupation

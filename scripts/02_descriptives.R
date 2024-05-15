@@ -1,20 +1,17 @@
 #descriptive analysis
 
 #load libraries
-library(psych)#for descriptives by group describeBy
-library(pastecs) #for stat.desc
-library(tidyr)
-library(gmodels)#for high and low ci thresholds
-library(ggplot2)
-
-#working directory
-setwd("/Users/Hannah/Documents/Analyse_Julia_Sonnleitner/pain/scripts")
+# library(psych)#for descriptives by group describeBy
+# library(pastecs) #for stat.desc
+# # library(tidyr)
+# library(gmodels)#for high and low ci thresholds
+# library(ggplot2)
 
 #turn of scientific notation of numbers as x e01
 options(scipen=999)
 
 #load formatted data from last script
-source("scripts/01_prepare_data.R")
+# source("scripts/01_prepare_data.R")
 
 #do you want to write tables to Excel or not? 
 excel = TRUE # TRUE or FALSE
@@ -29,7 +26,7 @@ ntreatment = count(subset(d0, group=="treatment"))[[1]]
 # categorical socio-economic variables at T0 ####
 
 # extract all variable names except subid, time and group
-names_catvarst0 <- names(d0[unlist(lapply(d0, is.factor))] %>% dplyr::select(-subid, -time, -group))
+names_catvarst0 <- names(d0[unlist(lapply(d0, is.factor))] %>% dplyr::select(-c(subid, group)))
 
 #count cases in each category per group
 count.tables <- lapply(d0[,names_catvarst0], function(x) ftable(xtabs(~ x + d0$group)))
@@ -104,8 +101,8 @@ if(excel) {
   freq_csv$Percent <- paste(freq_csv$Frequency, freq_csv$Percent)
   freq_csv$Frequency <- NULL
   
-  write.csv2(x=subset(freq_csv, group=="control"), file = "../output/T0Categorical_variables_control.csv", row.names=F)
-  write.csv2(x=subset(freq_csv, group=="treatment"), file = "../output/T0Categorical_variables_treatment.csv", row.names=F)
+  write.csv2(x=subset(freq_csv, group=="control"), file = "output/T0Categorical_variables_control.csv", row.names=F)
+  write.csv2(x=subset(freq_csv, group=="treatment"), file = "output/T0Categorical_variables_treatment.csv", row.names=F)
 }
 
 
@@ -130,7 +127,7 @@ desc_age <- d0 %>%
             max = round(max(age), 2), 
             lowCI = round(mean-1.96*sd/sqrt(n()),2), 
             hiCI = round(mean+1.96*sd/sqrt(n()),2)); desc_age
-if(excel) {write.csv2(x=t(desc_age), file = "../output/age.csv")}
+if(excel) {write.csv2(x=t(desc_age), file = "output/age.csv")}
 
 #pain duration norm test significant!  No NV
 if(figures) {ggplot(d0, aes(x=pain_duration_years, fill=group))+  geom_histogram(position="dodge")}
@@ -142,7 +139,7 @@ quant_painyears <- d0 %>%
             Q50 = quantile(pain_duration_years, probs=0.5),
             Q75 = quantile(pain_duration_years, probs=0.75),
             Q100 = quantile(pain_duration_years, probs=1))
-if(excel) {write.csv2(x=t(quant_painyears), file = "../output/pain_duration_years.csv")}
+if(excel) {write.csv2(x=t(quant_painyears), file = "output/pain_duration_years.csv")}
 
 
 #categorical variables that change from T0-T3: expectations and evaluation of therapy
@@ -182,7 +179,7 @@ mpss_prop <- d03 %>%
   mutate(proportion = round(nresp/sum(nresp)*100)) %>%
   ungroup()%>%
   dplyr::select(-nresp); mpss_prop
-if(excel) {write.csv2(mpss_prop, file="../output/mpss_proportions.csv", row.names=F)}
+if(excel) {write.csv2(mpss_prop, file="output/mpss_proportions.csv", row.names=F)}
 
 #calculate proportion for cpsq
 cpsq_prop <- d %>%
@@ -191,7 +188,7 @@ cpsq_prop <- d %>%
   mutate(proportion = round(nresp/sum(nresp)*100)) %>%
   ungroup()%>%
   dplyr::select(-nresp); cpsq_prop
-if(excel) {write.csv2(cpsq_prop, file="../output/cpsq_proportions.csv",row.names=F)}
+if(excel) {write.csv2(cpsq_prop, file="output/cpsq_proportions.csv",row.names=F)}
 
 # Continous variables assessed at T0 and T3: specialist visits, lost days ####
 
@@ -208,7 +205,7 @@ quant_visits <- d03 %>%
             Q100 = quantile(specialist_visits, probs=1), 
             mean = mean(specialist_visits), 
             SD = sd(specialist_visits))
-if(excel) {write.csv2(x=t(quant_visits), file = "../output/specialist_visits.csv")}
+if(excel) {write.csv2(x=t(quant_visits), file = "output/specialist_visits.csv")}
 
 #change scores 
 change_sickness_behav_desc <- diffs03 %>%  
@@ -234,7 +231,7 @@ quant_lostwd <- d03 %>%
             Q50 = quantile(lost_days, probs=0.5),
             Q75 = quantile(lost_days, probs=0.75),
             Q100 = quantile(lost_days, probs=1)); quant_lostwd
-if(excel) {write.csv2(x=t(quant_lostwd), file = "../output/lost_days.csv")}
+if(excel) {write.csv2(x=t(quant_lostwd), file = "output/lost_days.csv")}
 
 # continous variables T0-T2: psychotherapy motivation ####
 
@@ -260,7 +257,7 @@ desc_pt_mot <- dptm %>%
             max = round(max(pt_motivation), 2), 
             lowCI = round(mean-1.96*sd/sqrt(n()),2), 
             hiCI = round(mean+1.96*sd/sqrt(n()),2)); desc_pt_mot
-if(excel) {write.csv2(x=t(desc_pt_mot), file = "../output/pt_motivation.csv")}
+if(excel) {write.csv2(x=t(desc_pt_mot), file = "output/pt_motivation.csv")}
 
 # continuous variables that change from T0-T2-T3 ####
 
@@ -389,11 +386,11 @@ desc_hyp <- d %>%
             hiCI = round(mean+1.96*sd/sqrt(n()),2)); desc_hyp
 
 if(excel) {
-  write.csv2(x=t(desc_vas), file = "../output/vas.csv")
-  write.csv2(x=t(desc_lq), file = "../output/life_quality.csv")
-  write.csv2(x=t(desc_lq), file = "../output/depression.csv")
-  write.csv2(x=t(desc_vas), file = "../output/anxiety.csv")
-  write.csv2(x=t(desc_lq), file = "../output/hypochondria.csv")
+  write.csv2(x=t(desc_vas), file = "output/vas.csv")
+  write.csv2(x=t(desc_lq), file = "output/life_quality.csv")
+  write.csv2(x=t(desc_lq), file = "output/depression.csv")
+  write.csv2(x=t(desc_vas), file = "output/anxiety.csv")
+  write.csv2(x=t(desc_lq), file = "output/hypochondria.csv")
   }
 
 
@@ -445,7 +442,7 @@ round(stat.desc(with(subset(d0, group=="treatment"), cbind(age, lq_phys, lq_psyc
 # desc_bytime <- desc_bytime[,c(1,2,sapply(c(3:13), sort))] #first variable is in 3rd column
 # desc_bytime[,c(3:ncol(desc_bytime))] <- round(desc_bytime[,c(3:ncol(desc_bytime))],digits=2) #round to 2 digits
 # 
-# if(excel) {write.csv2(t(desc_bytime), file="../output/descriptives_by_time.csv")} #print this to excel table
+# if(excel) {write.csv2(t(desc_bytime), file="output/descriptives_by_time.csv")} #print this to excel table
 
 # 
 #levene tests

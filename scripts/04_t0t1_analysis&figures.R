@@ -7,7 +7,7 @@ library(ggplot2)
 library(scales)
 
 #read data and prepare the data ####
-dt0t1 <- read.csv2('../data/data_pain_t0t1.csv', header=T)
+dt0t1 <- read.csv2('data/data_pain_t0t1.csv', header=T)
 summary(dt0t1)
 
 #format variables
@@ -17,7 +17,7 @@ d <- dt0t1 %>%
   mutate(gender = factor(gender, levels = c(0,1), labels = c("men", "women"))) %>%
   mutate(cpsq = factor(cpsq, order = TRUE, levels = c(1:5)))
 summary(d)
-# save(d, file='../data/data_pain_t0t1.RData')
+# save(d, file='data/data_pain_t0t1.RData')
 
 #calculate differences for all T0-T2-T3 variables
 diffs <- d %>%
